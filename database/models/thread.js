@@ -1,4 +1,4 @@
-module.exports = function ({ sequelize, Sequelize }) {
+module.exports = function({ sequelize, Sequelize }) {
 	let Thread = sequelize.define('thread', {
 		num: {
 			type: Sequelize.INTEGER,
@@ -24,6 +24,6 @@ module.exports = function ({ sequelize, Sequelize }) {
 			type: Sequelize.BOOLEAN,
 			defaultValue: false
 		}
-	})
+	});
 	return Thread;
 }

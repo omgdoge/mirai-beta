@@ -7,7 +7,8 @@ try {
 	git = require('simple-git');
 	cmd = require('node-cmd');
 	exec = require('child_process').exec;
-} catch (err) {
+}
+catch (err) {
 	if (err) return console.log('[!] Hãy gõ lệnh này vào trước khi chạy update: "npm i fs-extra simple-git node-cmd" [!]');
 }
 
@@ -16,7 +17,7 @@ if (args.length > 1 || args[0] != '--force') return console.error('Updater chỉ
 if (args[0] == '--force') isForce = true;
 
 (async () => {
-	if (!fs.existsSync('./.needUpdate') && !isForce) return console.log('[!] Bạn đang sử dụng phiên bản mới nhất! [!]');
+	if (!fs.existsSync('./.updateAvailable') && !isForce) return console.log('[!] Bạn đang sử dụng phiên bản mới nhất [!]');
 	else if (isForce) console.log('[!] Đã bật bắt buộc cập nhật [!]');
 	cmd.run('pm2 stop 0');
 	if (process.env.API_SERVER_EXTERNAL == 'https://api.glitch.com') isGlitch = true;
@@ -45,7 +46,9 @@ async function backup() {
 
 async function clean() {
 	console.log('-> Đang xóa bản cũ');
-	fs.readdirSync('.').forEach(item => (item != 'tmp') ? fs.removeSync(item) : '');
+	fs.readdirSync('.').forEach(item => {
+		if (item != 'tmp') fs.removeSync(item);
+	});
 }
 
 function clone() {
@@ -62,7 +65,6 @@ async function install() {
 	console.log('-> Đang cài đặt bản cập nhật mới');
 	fs.copySync('./tmp/newVersion', './');
 	if (fs.existsSync('./tmp/appstate.json')) fs.copySync('./tmp/appstate.json', './appstate.json');
-	if (fs.existsSync('./tmp/.env.old')) fs.copySync('./tmp/.env.old', './.env');
 }
 
 function modules() {
@@ -88,9 +90,17 @@ function modules() {
 }
 
 async function finish() {
+	let checkDB = (await axios.get('https://raw.githubusercontent.com/roxtigger2003/mirai/master/package.json')).newDB;
+	if (checkDB) console.log('>> Database cần phải thay đổi, bạn sẽ không thể sử dụng được database cũ <<');
+	else {
+		console.log('>> Database không cần phải thay đổi, bạn có thể tiếp tục sử dụng database cũ <<');
+		fs.copySync('./tmp/config/data.sqlite', './config/data.sqlite');
+	}
 	console.log('-> Đang hoàn tất');
 	fs.removeSync('./tmp/newVersion');
-	console.log('>> Cập nhật hoàn tất! Tất cả những dữ liệu quan trọng đã được sao lưu trong thư mục "tmp" <<');
+	fs.copySync('./.env.example', './.env');
+	console.log('>> Cập nhật hoàn tất <<');
+	console.log('>> Tất cả những dữ liệu quan trọng đã được sao lưu trong thư mục "tmp" <<');
 	if (!isGlitch) console.log('[!] Vì bạn đang không chạy bot trên Glitch, bạn sẽ cần phải tự khởi động bot [!]');
 	else cmd.run('refresh');
 }

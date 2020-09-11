@@ -1,30 +1,14 @@
-module.exports = function({ api, modules, config, __GLOBAL, User, Thread, Rank, Economy, Fishing, Nsfw }) {
+module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, Economy, Fishing, Nsfw }) {
 	/* ================ Config ==================== */
-	let {prefix, canCheckUpdate, googleSearch, wolfarm, yandex, openweather, tenor, saucenao, waketime, sleeptime, admins, nsfwGodMode} = config;
+	let {prefix, googleSearch, wolfarm, yandex, openweather, tenor, saucenao, waketime, sleeptime, admins, nsfwGodMode} = config;
 	const fs = require("fs-extra");
 	const moment = require("moment-timezone");
 	const request = require("request");
 	const ms = require("parse-ms");
 	const stringSimilarity = require('string-similarity');
 	const axios = require('axios');
+	const logger = require("../modules/log.js");
 	var resetNSFW = false;
-
-	/* ================ Check update ================ */
-	if (canCheckUpdate) {
-		const semver = require('semver');
-		axios.get('https://raw.githubusercontent.com/roxtigger2003/mirai/master/package.json').then((res) => {
-			modules.log("Đang kiểm tra cập nhật...", 1);
-			var local = JSON.parse(fs.readFileSync('./package.json')).version;
-			if (semver.lt(local, res.data.version)) {
-				modules.log('Đã có bản cập nhật mới! Hãy bật terminal/cmd và gõ "node update" để cập nhật!', 1);
-				fs.writeFileSync('./.needUpdate', '');
-			}
-			else {
-				if (fs.existsSync('./.needUpdate')) fs.removeSync('./.needUpdate');
-				modules.log('Bạn đang sử dụng bản mới nhất!', 1);
-			}
-		}).catch(err => console.error(err));
-	}
 
 	/* ================ CronJob ==================== */
 	if (!fs.existsSync(__dirname + "/src/groupID.json")) {
@@ -34,7 +18,7 @@ module.exports = function({ api, modules, config, __GLOBAL, User, Thread, Rank, 
 			list.forEach(item => (item.isGroup == true) ? data.push(item.threadID) : '');
 			fs.writeFile(__dirname + "/src/groupID.json", JSON.stringify(data), err => {
 				if (err) throw err;
-				modules.log("Tạo file groupID mới thành công!");
+				logger("Tạo file groupID mới thành công!");
 			});
 		});
 	}
@@ -42,7 +26,7 @@ module.exports = function({ api, modules, config, __GLOBAL, User, Thread, Rank, 
 		fs.readFile(__dirname + "/src/groupID.json", "utf-8", (err, data) => {
 			if (err) throw err;
 			var groupids = JSON.parse(data);
-			if (!fs.existsSync(__dirname + "/src/listThread.json")) fs.writeFile(__dirname + "/src/listThread.json", JSON.stringify({ wake: [], sleep: [] }), err => modules.log("Tạo file listThread mới thành công!"));
+			if (!fs.existsSync(__dirname + "/src/listThread.json")) fs.writeFile(__dirname + "/src/listThread.json", JSON.stringify({ wake: [], sleep: [] }), err => logger("Tạo file listThread mới thành công!"));
 			setInterval(() => {
 				var oldData = JSON.parse(fs.readFileSync(__dirname + "/src/listThread.json"));
 				var timer = moment.tz("Asia/Ho_Chi_Minh").format("HH:mm");
@@ -63,7 +47,7 @@ module.exports = function({ api, modules, config, __GLOBAL, User, Thread, Rank, 
 				if (timer == "00:00")
 					if (resetNSFW == false) {
 						resetNSFW = true;
-						Economy.resetNSFW();
+						Nsfw.resetNSFW();
 					}
 			}, 1000);
 		});
@@ -72,7 +56,7 @@ module.exports = function({ api, modules, config, __GLOBAL, User, Thread, Rank, 
 	if (!fs.existsSync(__dirname + "/src/shortcut.json")) {
 		var template = [];
 		fs.writeFileSync(__dirname + "/src/shortcut.json", JSON.stringify(template));
-		modules.log('Tạo file shortcut mới thành công!');
+		logger('Tạo file shortcut mới thành công!');
 	}
 
 	return function({ event }) {
@@ -94,8 +78,8 @@ module.exports = function({ api, modules, config, __GLOBAL, User, Thread, Rank, 
 			mentions.forEach(mention => {
 				if (__GLOBAL.afkUser.includes(parseInt(mention))) {
 					(async () => {
-						var reason = await User.getReason(Object.keys(event.mentions));
-						var name = await User.getName(Object.keys(event.mentions));
+						var reason = await User.getReason(mention);
+						var name = await User.getName(mention);
 						reason == "none" ? api.sendMessage(`${name} Hiện tại đang bận!`, threadID, messageID) : api.sendMessage(`${name} Hiện tại đang bận với lý do: ${reason}`, threadID, messageID);
 					})();
 					return;
@@ -121,7 +105,14 @@ module.exports = function({ api, modules, config, __GLOBAL, User, Thread, Rank, 
 			let shortcut = JSON.parse(fs.readFileSync(__dirname + "/src/shortcut.json"));
 			if (shortcut.some(item => item.id == threadID)) {
 				let getThread = shortcut.find(item => item.id == threadID).shorts;
-				if (getThread.some(item => item.in == contentMessage)) return api.sendMessage(getThread.find(item => item.in == contentMessage).out, threadID);
+				let output = "";
+				if (getThread.some(item => item.in == contentMessage)) {
+					let shortOut = getThread.find(item => item.in == contentMessage).out;
+					if (shortOut.indexOf(" | ") !== -1) {
+						var arrayOut = shortOut.split(" | ");
+						return api.sendMessage(`${arrayOut[Math.floor(Math.random() * arrayOut.length)]}`, threadID);
+					} else return api.sendMessage(`${shortOut}`, threadID);
+				}
 			}
 		}
 
@@ -142,159 +133,7 @@ module.exports = function({ api, modules, config, __GLOBAL, User, Thread, Rank, 
 		var cmds = nocmdData.banned.find(item => item.id == threadID).cmds;
 		for (const item of cmds) if (contentMessage.indexOf(prefix + item) == 0) return api.sendMessage("Lệnh này đã bị cấm!", threadID, messageID);
 
-		//unban command
-		if (contentMessage.indexOf(`${prefix}unban command`) == 0 && admins.includes(senderID)) {
-			var content = contentMessage.slice(prefix.length + 14,contentMessage.length);
-			if (!content) return api.sendMessage("Hãy nhập lệnh cần bỏ cấm!", threadID, messageID);
-			var jsonData = JSON.parse(fs.readFileSync(__dirname + "/src/cmds.json"));
-			var getCMDS = jsonData.banned.find(item => item.id == threadID).cmds;
-			if (!getCMDS.includes(content)) return api.sendMessage("Lệnh " + content + " chưa bị cấm", threadID, messageID);
-			else {
-				let getIndex = getCMDS.indexOf(content);
-				getCMDS.splice(getIndex, 1);
-				api.sendMessage("Đã bỏ cấm " + content + " trong group này", threadID, messageID);
-			}
-			return fs.writeFileSync(__dirname + "/src/cmds.json", JSON.stringify(jsonData), "utf-8");
-		}
-
-		//ban command
-		if (contentMessage.indexOf(`${prefix}ban command`) == 0 && admins.includes(senderID)) {
-			var content = contentMessage.slice(prefix.length + 12, contentMessage.length);
-			if (!content) return api.sendMessage("Hãy nhập lệnh cần cấm!", threadID, messageID);
-			var jsonData = JSON.parse(fs.readFileSync(__dirname + "/src/cmds.json"));
-			if (content == "list") {
-				return api.sendMessage(`Đây là danh sách các command hiện đang bị ban tại group này: ${nocmdData.banned.find(item => item.id == threadID).cmds}`, threadID, messageID);
-			}
-			if (!jsonData.cmds.includes(content)) return api.sendMessage("Không có lệnh " + content + " trong cmds.json nên không thể cấm", threadID, messageID);
-			else {
-				if (jsonData.banned.some(item => item.id == threadID)) {
-					let getThread = jsonData.banned.find(item => item.id == threadID);
-					getThread.cmds.push(content);
-				}
-				else {
-					let addThread = {
-						id: threadID,
-						cmds: []
-					};
-					addThread.cmds.push(content);
-					jsonData.banned.push(addThread);
-				}
-				api.sendMessage("Đã cấm " + content + " trong group này", threadID, messageID);
-			}
-			return fs.writeFileSync(__dirname + "/src/cmds.json", JSON.stringify(jsonData), "utf-8");
-		}
-
-		// Unban thread
-		if (__GLOBAL.threadBlocked.includes(threadID)) {
-			if (contentMessage == `${prefix}unban thread` && admins.includes(senderID)) {
-				const indexOfThread = __GLOBAL.threadBlocked.indexOf(threadID);
-				if (indexOfThread == -1) return api.sendMessage("Nhóm này chưa bị chặn!", threadID, messageID);
-				Thread.unban(threadID).then(success => {
-					if (!success) return api.sendMessage("Không thể bỏ chặn nhóm này!", threadID, messageID);
-					api.sendMessage("Nhóm này đã được bỏ chặn!", threadID, messageID);
-					__GLOBAL.threadBlocked.splice(indexOfThread, 1);
-					modules.log(threadID, "Unban Thread");
-				});
-			}
-			return;
-		}
-
 		Rank.updatePoint(senderID, 1);
-
-		// Unban user
-		if (contentMessage.indexOf(`${prefix}unban`) == 0 && admins.includes(senderID)) {
-			const mentions = Object.keys(event.mentions);
-			if (!mentions) return api.sendMessage("Vui lòng tag những người cần unban", threadID, messageID);
-			mentions.forEach(mention => {
-				const indexOfUser = __GLOBAL.userBlocked.indexOf(parseInt(mention));
-				if (indexOfUser == -1)
-					return api.sendMessage({
-						body: `${event.mentions[mention]} chưa bị ban, vui lòng ban trước!`,
-						mentions: [{
-							tag: event.mentions[mention],
-							id: mention
-						}]
-					}, threadID, messageID);
-				User.unban(mention).then(success => {
-					if (!success) return api.sendMessage("Không thể unban người này!", threadID, messageID);
-					api.sendMessage({
-						body: `Đã unban ${event.mentions[mention]}!`,
-						mentions: [{
-							tag: event.mentions[mention],
-							id: mention
-						}]
-					}, threadID, messageID);
-					__GLOBAL.userBlocked.splice(indexOfUser, 1);
-					modules.log(mentions, "Unban User");
-				});
-			});
-			return;
-		}
-
-		// Ban thread
-		if (contentMessage == `${prefix}ban thread` && admins.includes(senderID)) {
-			Thread.ban(parseInt(threadID)).then((success) => {
-				if (!success) return api.sendMessage("Không thể ban group này!", threadID, messageID);
-				api.sendMessage("Nhóm này đã bị chặn tin nhắn!.", threadID, messageID);
-				__GLOBAL.threadBlocked.push(parseInt(threadID));
-			})
-			return;
-		}
-
-		// Ban user
-		if (contentMessage.indexOf(`${prefix}ban`) == 0 && admins.includes(senderID)) {
-			const mentions = Object.keys(event.mentions);
-			if (!mentions) return api.sendMessage("Vui lòng tag những người cần ban!", threadID, messageID);
-			mentions.forEach(mention => {
-				if (__GLOBAL.threadBlocked.includes(mention)) return api.sendMessage(`${event.mentions[mention]} đã bị ban từ trước!`, threadID, messageID);
-				User.ban(parseInt(mention)).then((success) => {
-					if (!success) return api.sendMessage("Không thể ban người này!", threadID, messageID);
-					api.sendMessage({
-						body: `${event.mentions[mention]} đã bị ban!`,
-						mentions: [{
-							tag: event.mentions[mention],
-							id: parseInt(mention)
-						}]
-					}, threadID, messageID);
-					__GLOBAL.userBlocked.push(parseInt(mention));
-					modules.log(parseInt(mention), 'Ban User');
-				})
-			});
-			return;
-		}
-
-		//resend
-		if (contentMessage.indexOf(`${prefix}resend`) == 0) {
-			var content = contentMessage.slice(prefix.length + 7, contentMessage.length);
-			if (content == 'off') {
-				if (__GLOBAL.resendBlocked.includes(threadID)) return api.sendMessage("Nhóm này đã bị tắt resend từ trước!", threadID, messageID);
-				Thread.blockResend(threadID).then((success) => {
-					if (!success) return api.sendMessage("Oops, không thể tắt resend ở nhóm này!", threadID, messageID);
-					api.sendMessage("Đã tắt resend tin nhắn thành công!", threadID, messageID);
-					__GLOBAL.resendBlocked.push(threadID);
-				})
-			}
-			else if (content == 'on') {
-				if (!__GLOBAL.resendBlocked.includes(threadID)) return api.sendMessage("Nhóm này chưa bị tắt resend", threadID, messageID);
-				Thread.unblockResend(threadID).then(success => {
-					if (!success) return api.sendMessage("Oops, không thể bật resend ở nhóm này!", threadID, messageID);
-					api.sendMessage("Đã bật resend tin nhắn, tôi sẽ nhắc lại tin nhắn bạn đã xoá 😈", threadID, messageID);
-					__GLOBAL.resendBlocked.splice(__GLOBAL.resendBlocked.indexOf(threadID), 1);
-				});
-			}
-			return;
-		}
-
-		//Thông báo tới toàn bộ group!
-		if (contentMessage.indexOf(`${prefix}noti`) == 0 && admins.includes(senderID)) {
-			var content = contentMessage.slice(prefix.length + 5, contentMessage.length);
-			if (!content) return api.sendMessage("Nhập thông tin vào!", threadID, messageID);
-			return api.getThreadList(100, null, ["INBOX"], (err, list) => {
-				if (err) throw err;
-				list.forEach(item => (item.isGroup == true && item.threadID != threadID) ? api.sendMessage(content, item.threadID) : '');
-				api.sendMessage('Đã gửi thông báo với nội dung:\n' + content, threadID, messageID);
-			});
-		}
 
 		//giúp thành viên thông báo lỗi về admin
 		if (contentMessage.indexOf(`${prefix}report`) == 0) {
@@ -336,12 +175,11 @@ module.exports = function({ api, modules, config, __GLOBAL, User, Thread, Rank, 
 			return;
 		}
 
-		//restart
-		if (contentMessage == `${prefix}restart` && admins.includes(senderID)) return api.sendMessage(`Hệ thống restart khẩn ngay bây giờ!!`, threadID, () => require("node-cmd").run("pm2 restart 0"), messageID);
-
 		//admin command
 		if (contentMessage.indexOf(`${prefix}admin`) == 0 && admins.includes(senderID)) {
-			var content = contentMessage.slice(prefix.length + 6, contentMessage.length);
+			var contentSplit = contentMessage.split(" ");
+			var content = contentSplit[1];
+			var arg = contentSplit[2];
 			var helpList = JSON.parse(fs.readFileSync(__dirname + "/src/help/listAC.json"));
 			if (content.indexOf("all") == 0) {
 				var commandAdmin = [];
@@ -359,10 +197,188 @@ module.exports = function({ api, modules, config, __GLOBAL, User, Thread, Rank, 
 						'- Hướng dẫn: ' + prefix + helpList.find(item => item.name == helpCommand).example,
 						threadID, messageID
 					);
-				else return api.sendMessage(`Lệnh bạn nhập không hợp lệ, hãy gõ ${prefix}help để xem tất cả các lệnh có trong bot.`, threadID, messageID);
-			} else if (content.indexOf("listThread") == 0) {
-			
+				else return api.sendMessage(`Lệnh bạn nhập không hợp lệ, hãy gõ ${prefix}admin all để xem tất cả các lệnh có trong bot.`, threadID, messageID);
 			}
+			else if (content.indexOf("settings") == 0) {
+				return api.sendMessage(
+					'🛠 | Đây là toàn bộ cài đặt của bot | 🛠\n' +
+					'\n=== Quản Lý Cài Đặt ===' +
+					'\n[1] Prefix.' +
+					'\n[2] Tên của bot.' +
+					'\n[3] Danh sách admins.' +
+					'\n[4] Khởi động lại.' +
+					'\n[5] Giờ nhắc ngủ.' +
+					'\n[6] Giờ nhắc dậy.' +
+					'\n=== Quản Lý Hoạt Động ===' +
+					'\n[7] Kiểm tra cập nhật.' +
+					'\n[8] Lấy danh sách các user bị ban.' +
+					'\n[9] Lấy danh sách các nhóm bị ban.' +
+					'\n[10] Gửi thông báo đến toàn bộ nhóm ' +
+					'\n[11] Tìm kiếm uid qua tên user.' +
+					'\n[12] Tìm kiếm threadID qua tên nhóm.' +
+					'\n[13] Áp dụng toàn bộ cài đặt.' +
+					'\n-> Để chọn bạn hãy reply tin nhắn này kèm với số bạn muốn <-',
+					threadID, (err, info) => {
+						if (err) throw err;
+						__GLOBAL.reply.push({
+							type: "admin_settings",
+							messageID: info.messageID,
+							target: parseInt(threadID),
+							author: senderID
+						});
+					}
+				);
+			}
+			else if (content.indexOf("banUser") == 0) {
+				const mentions = Object.keys(event.mentions);
+				if (mentions.length == 0) {
+					return User.ban(parseInt(arg)).then(success => {
+						User.getName(parseInt(arg)).then(name => {
+							__GLOBAL.userBlocked.push(parseInt(arg));
+							logger(arg, 'Ban User');
+							if (!name) name = 'Người lạ nào đấy';
+							if (__GLOBAL.userBlocked.includes(arg)) return api.sendMessage(`${name} - ${arg} đã bị ban từ trước!`, threadID);
+							if (!success) return api.sendMessage("Không thể ban người này!", threadID, messageID);
+							api.sendMessage(`${name} - ${arg} đã bị ban`, threadID, messageID);
+						});
+					});
+				}
+				else {
+					return mentions.forEach(id => {
+						id = parseInt(id);
+						if (__GLOBAL.threadBlocked.includes(id)) return api.sendMessage(`${event.mentions[id]} đã bị ban từ trước!`, threadID, messageID);
+						User.ban(id).then((success) => {
+							if (!success) return api.sendMessage("Không thể ban người này!", threadID, messageID);
+							api.sendMessage({
+								body: `${event.mentions[id]} đã bị ban!`,
+								mentions: [{ tag: event.mentions[id], id }]
+							}, threadID, messageID);
+							__GLOBAL.userBlocked.push(id);
+							logger(id, 'Ban User');
+						});
+					});
+				};
+			}
+			else if (content.indexOf("unbanUser") == 0) {
+				const mentions = Object.keys(event.mentions);
+				if (mentions == 0) {
+					return User.unban(parseInt(arg)).then(success => {
+						User.getName(parseInt(arg)).then(name => {
+							const indexOfUser = __GLOBAL.userBlocked.indexOf(parseInt(arg));
+							if (indexOfUser == -1) return api.sendMessage(`${name} - ${arg} chưa bị ban từ trước!`, threadID, messageID);
+							if (!success) return api.sendMessage(`không thể unban ${name} - ${arg}!`, threadID, messageID);
+							api.sendMessage(`${name} - ${arg} đã được unban`, threadID, messageID);
+							__GLOBAL.userBlocked.splice(indexOfUser, 1);
+							logger(arg, "Unban User");
+						});
+					});
+				}
+				else {
+					return mentions.forEach(id => {
+						id = parseInt(id);
+						const indexOfUser = __GLOBAL.userBlocked.indexOf(id);
+						if (indexOfUser == -1)
+							return api.sendMessage({
+								body: `${event.mentions[id]} chưa bị ban, vui lòng ban trước!`,
+								mentions: [{ tag: event.mentions[id], id }]
+							}, threadID, messageID);
+						User.unban(id).then(success => {
+							if (!success) return api.sendMessage("Không thể unban người này!", threadID, messageID);
+							api.sendMessage({
+								body: `Đã unban ${event.mentions[id]}!`,
+								mentions: [{ tag: event.mentions[id], id }]
+							}, threadID, messageID);
+							__GLOBAL.userBlocked.splice(indexOfUser, 1);
+							logger(mentions, "Unban User");
+						});
+					});
+				}
+			}
+			else if (content.indexOf("banThread") == 0) {
+				if (arg) return Thread.ban(parseInt(arg)).then(success => {
+					if (!success) return api.sendMessage("Không thể ban group này!", threadID, messageID);
+					api.sendMessage("Nhóm này đã bị chặn tin nhắn!.", threadID, messageID);
+					__GLOBAL.threadBlocked.push(parseInt(arg));
+				});
+				else return Thread.ban(threadID).then(success => {
+					if (!success) return api.sendMessage("Không thể ban group này!", threadID, messageID);
+					api.sendMessage("Nhóm này đã bị chặn tin nhắn!.", threadID, messageID);
+					__GLOBAL.threadBlocked.push(threadID);
+				});
+			}
+			else if (content.indexOf("unbanThread") == 0) {
+				if (arg) return Thread.unban(parseInt(arg)).then(success => {
+					const indexOfThread = __GLOBAL.threadBlocked.indexOf(parseInt(arg));
+					if (indexOfThread == -1) return api.sendMessage("Nhóm này chưa bị chặn!", threadID, messageID);
+					if (!success) return api.sendMessage("Không thể bỏ chặn nhóm này!", threadID, messageID);
+					api.sendMessage("Nhóm này đã được bỏ chặn!", threadID, messageID);
+					__GLOBAL.threadBlocked.splice(indexOfThread, 1);
+					logger(arg, "Unban Thread");
+				});
+				return Thread.unban(threadID).then(success => {
+					const indexOfThread = __GLOBAL.threadBlocked.indexOf(threadID);
+					if (indexOfThread == -1) return api.sendMessage("Nhóm này chưa bị chặn!", threadID, messageID);
+					if (!success) return api.sendMessage("Không thể bỏ chặn nhóm này!", threadID, messageID);
+					api.sendMessage("Nhóm này đã được bỏ chặn!", threadID, messageID);
+					__GLOBAL.threadBlocked.splice(indexOfThread, 1);
+					logger(threadID, "Unban Thread");
+				});
+			}
+			else if (content.indexOf("banCmd") == 0) {
+				if (!arg) return api.sendMessage("Hãy nhập lệnh cần cấm!", threadID, messageID);
+				var jsonData = JSON.parse(fs.readFileSync(__dirname + "/src/cmds.json"));
+				if (arg == "list") return api.sendMessage(`Đây là danh sách các command hiện đang bị ban tại group này: ${nocmdData.banned.find(item => item.id == threadID).cmds}`, threadID, messageID);
+				if (!jsonData.cmds.includes(arg)) return api.sendMessage("Không có lệnh " + arg + " trong cmds.json nên không thể cấm", threadID, messageID);
+				else {
+					if (jsonData.banned.some(item => item.id == threadID)) {
+						let getThread = jsonData.banned.find(item => item.id == threadID);
+						getThread.cmds.push(arg);
+					}
+					else {
+						let addThread = {
+							id: threadID,
+							cmds: []
+						};
+						addThread.cmds.push(arg);
+						jsonData.banned.push(addThread);
+					}
+					api.sendMessage("Đã cấm " + arg + " trong group này", threadID, messageID);
+				}
+				return fs.writeFileSync(__dirname + "/src/cmds.json", JSON.stringify(jsonData), "utf-8");
+			}
+			else if (content.indexOf("unbanCmd") == 0) {
+				if (!arg) return api.sendMessage("Hãy nhập lệnh cần bỏ cấm!", threadID, messageID);
+				var jsonData = JSON.parse(fs.readFileSync(__dirname + "/src/cmds.json"));
+				var getCMDS = jsonData.banned.find(item => item.id == threadID).cmds;
+				if (!getCMDS.includes(arg)) return api.sendMessage("Lệnh " + arg + " chưa bị cấm", threadID, messageID);
+				else {
+					let getIndex = getCMDS.indexOf(arg);
+					getCMDS.splice(getIndex, 1);
+					api.sendMessage("Đã bỏ cấm " + arg + " trong group này", threadID, messageID);
+				}
+				return fs.writeFileSync(__dirname + "/src/cmds.json", JSON.stringify(jsonData), "utf-8");
+			}
+			else if (content.indexOf("resend") == 0) {
+				if (arg == 'off') {
+					if (__GLOBAL.resendBlocked.includes(threadID)) return api.sendMessage("Nhóm này đã bị tắt resend từ trước!", threadID, messageID);
+					return Thread.blockResend(threadID).then((success) => {
+						if (!success) return api.sendMessage("Oops, không thể tắt resend ở nhóm này!", threadID, messageID);
+						api.sendMessage("Đã tắt resend tin nhắn thành công!", threadID, messageID);
+						__GLOBAL.resendBlocked.push(threadID);
+					})
+				}
+				else if (arg == 'on') {
+					if (!__GLOBAL.resendBlocked.includes(threadID)) return api.sendMessage("Nhóm này chưa bị tắt resend", threadID, messageID);
+					return Thread.unblockResend(threadID).then(success => {
+						if (!success) return api.sendMessage("Oops, không thể bật resend ở nhóm này!", threadID, messageID);
+						api.sendMessage("Đã bật resend tin nhắn, tôi sẽ nhắc lại tin nhắn bạn đã xoá 😈", threadID, messageID);
+						__GLOBAL.resendBlocked.splice(__GLOBAL.resendBlocked.indexOf(threadID), 1);
+					});
+				}
+			}
+			else if (content.indexOf("addUser") == 0) return api.addUserToGroup(arg, threadID);
+			else if (content.indexOf("restart") == 0) return api.sendMessage(`Hệ thống restart khẩn ngay bây giờ!`, threadID, () => require("node-cmd").run("pm2 restart 0"), messageID);
+			else return api.sendMessage(`Lệnh không tồn tại!`, threadID, messageID);
 		}
 
 	/* ==================== Help Commands ================*/
@@ -502,7 +518,8 @@ module.exports = function({ api, modules, config, __GLOBAL, User, Thread, Rank, 
 			}
 			return request(data[content], (error, response, body) => {
 				let picData = JSON.parse(body);
-				let getURL = picData.data.response.url;
+				let getURL = "";
+				(!picData.data) ? getURL = picData.url : getURL = picData.data.response.url;
 				let ext = getURL.substring(getURL.lastIndexOf(".") + 1);
 				request(getURL).pipe(fs.createWriteStream(__dirname + `/src/anime.${ext}`)).on("close", () => api.sendMessage({attachment: fs.createReadStream(__dirname + `/src/anime.${ext}`)}, threadID, () => fs.unlinkSync(__dirname + `/src/anime.${ext}`), messageID));
 			});
@@ -734,7 +751,13 @@ module.exports = function({ api, modules, config, __GLOBAL, User, Thread, Rank, 
 					}
 					else {
 						let getShort = oldData.find(item => item.id == threadID);
-						if (getShort.shorts.some(item => item.in == shortin)) return api.sendMessage("Shortcut này đã tồn tại trong group này!", threadID, messageID);
+						if (getShort.shorts.some(item => item.in == shortin)) {
+							let index = getShort.shorts.indexOf(getShort.shorts.find(item => item.in == shortin));
+							let output = getShort.shorts.find(item => item.in == shortin).out;
+							getShort.shorts[index].out = output + " | " + shortout;
+							api.sendMessage('phát hiện shortcut đã tồn tại, tiến hành ghi trùng!', threadID, messageID);
+							return fs.writeFile(__dirname + "/src/shortcut.json", JSON.stringify(oldData), "utf-8");
+						}
 						getShort.shorts.push({ in: shortin, out: shortout });
 						return fs.writeFile(__dirname + "/src/shortcut.json", JSON.stringify(oldData), "utf-8", (err) => (err) ? console.error(err) : api.sendMessage("Tạo shortcut mới thành công!", threadID, messageID));
 					}
@@ -930,21 +953,32 @@ module.exports = function({ api, modules, config, __GLOBAL, User, Thread, Rank, 
 
 		//rank
 		if (contentMessage.indexOf(`${prefix}rank`) == 0) {
-			const createCard = require("../controllers/rank_card.js");
-			var content = contentMessage.slice(prefix.length + 5, contentMessage.length);
-			if (content.length == 0)
-				(async () => {
+			(async () => {
+				const createCard = require("../controllers/rank_card.js");
+				var content = contentMessage.slice(prefix.length + 5, contentMessage.length);
+				let all = await User.getUsers(['uid', 'point']);
+				all.sort((a, b) => {
+					if (a.point > b.point) return -1;
+					if (a.point < b.point) return 1;
+					if (a.uid > b.uid) return 1;
+					if (a.uid < b.uid) return -1;
+				});
+				if (!content) {
+					let rank = all.findIndex(item => item.uid == senderID) + 1;
 					let name = await User.getName(senderID);
-					Rank.getPoint(senderID).then(point => createCard({ id: senderID, name, ...point })).then(path => api.sendMessage({attachment: fs.createReadStream(path)}, threadID, () => fs.unlinkSync(path), messageID))
-				})();
-			else if (content.indexOf("@") !== -1)
-				for (var i = 0; i < Object.keys(event.mentions).length; i++) {
-					let uid = Object.keys(event.mentions)[i];
-					(async () => {
-						let name = await User.getName(uid);
-						Rank.getPoint(uid).then(point => createCard({ id: uid, name, ...point })).then(path => api.sendMessage({attachment: fs.createReadStream(path)}, threadID, () => fs.unlinkSync(path), messageID))
-					})();
+					if (rank == 0) api.sendMessage('Bạn hiện chưa có trong database nên không thể xem rank, hãy thử lại sau 5 giây.', threadID, messageID);
+					else Rank.getPoint(senderID).then(point => createCard({ id: senderID, name, rank, ...point })).then(path => api.sendMessage({attachment: fs.createReadStream(path)}, threadID, () => fs.unlinkSync(path), messageID));
 				}
+				else {
+					let mentions = Object.keys(event.mentions);
+					mentions.forEach(i => {
+						let name = event.mentions[i].replace('@', '');
+						let rank = all.findIndex(item => item.uid == i) + 1;
+						if (rank == 0) api.sendMessage(name + ' chưa có trong database nên không thể xem rank.', threadID, messageID);
+						else Rank.getPoint(i).then(point => createCard({ id: parseInt(i), name, rank, ...point })).then(path => api.sendMessage({attachment: fs.createReadStream(path)}, threadID, () => fs.unlinkSync(path), messageID));
+					});
+				}
+			})();
 			return;
 		}
 
@@ -1312,7 +1346,8 @@ module.exports = function({ api, modules, config, __GLOBAL, User, Thread, Rank, 
 				request(data[content], (error, response, body) => {
 					if (useLeft != -1) Nsfw.subtractHentai(senderID);
 					let picData = JSON.parse(body);
-					let getURL = picData.data.response.url;
+					let getURL = "";
+					(!picData.data) ? getURL = picData.url : getURL = picData.data.response.url;
 					let ext = getURL.substring(getURL.lastIndexOf(".") + 1);
 					request(getURL).pipe(fs.createWriteStream(__dirname + `/src/hentai.${ext}`)).on("close", () => api.sendMessage({attachment: fs.createReadStream(__dirname + `/src/hentai.${ext}`)}, threadID, () => fs.unlinkSync(__dirname + `/src/hentai.${ext}`), messageID));
 				});
@@ -1354,29 +1389,27 @@ module.exports = function({ api, modules, config, __GLOBAL, User, Thread, Rank, 
 			var content = contentMessage.slice(prefix.length + 8, contentMessage.length);
 			var sender = content.slice(0, content.lastIndexOf(" "));
 			var tierSet = content.substring(content.lastIndexOf(" ") + 1);
-			return Economy.getMoney(senderID).then((moneydb) => {
-				if (isNaN(tierSet)) return api.sendMessage('Số hạng NSFW cần set của bạn không phải là 1 con số!', threadID, messageID);
-				if (tierSet > 5 || tierSet < -1) return api.sendMessage('Hạng NSFW không được dưới -1 và vượt quá 5', threadID, messageID);
-				if (tierSet == -1 && nsfwGodMode == false) return api.sendMessage('Bạn chưa bật NSFW God Mode trong config.', threadID, messageID);
-				if (!mention && sender == 'me' && tierSet != -1) return api.sendMessage("Đã sửa hạng NSFW của bản thân thành " + tierSet, threadID, () => Economy.setNSFW(senderID, parseInt(tierSet)), messageID);
-				if (!mention && sender == 'me' && tierSet == -1) return api.sendMessage("Đã bật God Mode cho bản thân!\nBạn sẽ không bị trừ số lần sử dụng lệnh NSFW.", threadID, () => Economy.setNSFW(senderID, parseInt(tierSet)), messageID);
-				if (sender != 'me' && tierSet != -1)
-					api.sendMessage({
-						body: `Bạn đã sửa hạng NSFW của ${event.mentions[mention].replace("@", "")} thành ${tierSet}.`,
-						mentions: [{
-							tag: event.mentions[mention].replace("@", ""),
-							id: mention
-						}]
-					}, threadID, () => Nsfw.setNSFW(mention, parseInt(tierSet)), messageID);
-				if (senderID != 'me' && tierSet == -1)
-					api.sendMessage({
-						body: `Bạn đã bật God Mode cho ${event.mentions[mention].replace("@", "")}!\nGiờ người này có thể dùng lệnh NSFW mà không bị giới hạn!`,
-						mentions: [{
-							tag: event.mentions[mention].replace("@", ""),
-							id: mention
-						}]
-					}, threadID, () => Nsfw.setNSFW(mention, parseInt(tierSet)), messageID);
-			});
+			if (isNaN(tierSet)) return api.sendMessage('Số hạng NSFW cần set của bạn không phải là 1 con số!', threadID, messageID);
+			if (tierSet > 5 || tierSet < -1) return api.sendMessage('Hạng NSFW không được dưới -1 và vượt quá 5', threadID, messageID);
+			if (tierSet == -1 && nsfwGodMode == false) return api.sendMessage('Bạn chưa bật NSFW God Mode trong config.', threadID, messageID);
+			if (!mention && sender == 'me' && tierSet != -1) return api.sendMessage("Đã sửa hạng NSFW của bản thân thành " + tierSet, threadID, () => Nsfw.setNSFW(senderID, parseInt(tierSet)), messageID);
+			if (!mention && sender == 'me' && tierSet == -1) return api.sendMessage("Đã bật God Mode cho bản thân!\nBạn sẽ không bị trừ số lần sử dụng lệnh NSFW.", threadID, () => Nsfw.setNSFW(senderID, parseInt(tierSet)), messageID);
+			if (sender != 'me' && tierSet != -1)
+				api.sendMessage({
+					body: `Bạn đã sửa hạng NSFW của ${event.mentions[mention].replace("@", "")} thành ${tierSet}.`,
+					mentions: [{
+						tag: event.mentions[mention].replace("@", ""),
+						id: mention
+					}]
+				}, threadID, () => Nsfw.setNSFW(mention, parseInt(tierSet)), messageID);
+			if (senderID != 'me' && tierSet == -1)
+				api.sendMessage({
+					body: `Bạn đã bật God Mode cho ${event.mentions[mention].replace("@", "")}!\nGiờ người này có thể dùng lệnh NSFW mà không bị giới hạn!`,
+					mentions: [{
+						tag: event.mentions[mention].replace("@", ""),
+						id: mention
+					}]
+				}, threadID, () => Nsfw.setNSFW(mention, parseInt(tierSet)), messageID);
 		}
 
 		/* ==================== Economy and Minigame Commands ==================== */
@@ -1413,11 +1446,12 @@ module.exports = function({ api, modules, config, __GLOBAL, User, Thread, Rank, 
 					api.sendMessage("Bạn đã nhận phần thưởng của ngày hôm nay. Cố gắng lên nhé <3", threadID, () => {
 						Economy.addMoney(senderID, 200);
 						Economy.updateDailyTime(senderID, Date.now());
-						modules.log("User: " + senderID + " nhận daily thành công!");
+						logger("User: " + senderID + " nhận daily thành công!");
 					}, messageID);
 			});
 		}
 
+		//work
 		if (contentMessage == `${prefix}work`) {
 			return Economy.getWorkTime(senderID).then((lastWork) => {
 				let cooldown = 1200000;
@@ -1448,7 +1482,7 @@ module.exports = function({ api, modules, config, __GLOBAL, User, Thread, Rank, 
 					api.sendMessage(`Bạn đã làm công việc: "${job[Math.floor(Math.random() * job.length)]}" và đã nhận được số tiền là: ${amount} đô`, threadID, () => {
 						Economy.addMoney(senderID, parseInt(amount));
 						Economy.updateWorkTime(senderID, Date.now());
-						modules.log("User: " + senderID + " nhận job thành công!");
+						logger("User: " + senderID + " nhận job thành công!");
 					}, messageID);
 				}
 			});
@@ -1582,20 +1616,21 @@ module.exports = function({ api, modules, config, __GLOBAL, User, Thread, Rank, 
 												Economy.addMoney(senderID, parseInt(moneydb));
 											}, messageID);
 											else return api.sendMessage("Bạn đen vl, trộm được cục cứt xD", threadID, messageID);
-										})
-									} else if (route == 1) {
+										});
+									}
+									else if (route == 1) {
 										Economy.getMoney(senderID).then(moneydb => {
 											if (moneydb <= 0) return api.sendMessage("Cần lao vi tiên thủ\nNăng cán dĩ đắc thực\nVô vi thực đầu buồi\nThực cứt thế cho nhanh", threadID, messageID);
 											else if (moneydb > 0) return api.sendMessage(`Bạn bị tóm vì tội ăn trộm, mất ${moneydb} đô`, threadID, () => api.sendMessage({body: `Chúc mừng anh hùng ${nameV} tóm gọn tên trộm ${name} và đã nhận được tiền thưởng ${Math.floor(moneydb / 2)} đô`, mentions: [{ tag: nameV, id: victim}, {tag: name, id: senderID}]}, threadID, () => {
 												Economy.subtractMoney(senderID, moneydb);
 												Economy.addMoney(victim, parseInt(Math.floor(moneydb / 2)));
 											}), messageID);
-										})
+										});
 									}
 								}
-							})
-						})
-					})
+							});
+						});
+					});
 					Economy.updateStealTime(senderID, Date.now());
 				};
 			})
@@ -1673,7 +1708,7 @@ module.exports = function({ api, modules, config, __GLOBAL, User, Thread, Rank, 
 					}
 					else if (new Date() - new Date(lastTimeFishing) <= 5000) api.sendMessage('Bạn chỉ được câu cá mỗi 5 giây một lần, vui lòng không spam .-.', threadID, messageID);
 				}
-				else if (content.indexOf('túi') == 0) {
+				else if (content.indexOf('bag') == 0) {
 					var total = inventory.trash + inventory.fish1 * 30 + inventory.fish2 * 100 + inventory.crabs * 250 + inventory.blowfish * 300 + inventory.crocodiles * 500 + inventory.whales * 750 + inventory.dolphins * 750 + inventory.squid * 1000 + inventory.sharks * 1000;
 					api.sendMessage(
 						"===== Inventory Của Bạn =====" +
@@ -1692,7 +1727,7 @@ module.exports = function({ api, modules, config, __GLOBAL, User, Thread, Rank, 
 						threadID, messageID
 					);
 				}
-				else if (content.indexOf('bán') == 0) {
+				else if (content.indexOf('sell') == 0) {
 					var choose = content.split(' ')[1];
 					if (!choose) return api.sendMessage('Chưa nhập thứ cần bán.', threadID, messageID);
 					else if (choose == 'trash' || choose == '1') {
@@ -1757,21 +1792,21 @@ module.exports = function({ api, modules, config, __GLOBAL, User, Thread, Rank, 
 					}
 					else if (choose == 'all') {
 						var money = parseInt(inventory.trash + inventory.fish1 * 30 + inventory.fish2 * 100 + inventory.crabs * 250 + inventory.blowfish * 300 + inventory.crocodiles * 500 + inventory.whales * 750 + inventory.dolphins * 750 + inventory.squid * 1000 + inventory.sharks * 1000);
-						inventory.trash = 0;
-						inventory.fish1 = 0;
-						inventory.fish2 = 0;
-						inventory.crabs = 0;
-						inventory.crocodiles = 0;
-						inventory.whales = 0;
-						inventory.dolphins = 0;
-						inventory.blowfish = 0;
-						inventory.squid = 0;
-						inventory.sharks = 0;
-						api.sendMessage('🎣 | Bạn đã bán toàn bộ sản lượng trong túi và thu về được ' + money + ' đô', threadID, messageID);
+						api.sendMessage(`🎣 | Bạn sẽ nhận về được ${money} đô sau khi bán toàn bộ hải sản có trong túi. Bạn muỗn tiếp tục chứ? \n ==== Like tin nhắn này để đồng ý giao dịch hoặc dislike để huỷ giao dịch ====`, threadID, (err, info) => {
+							if (err) throw err;
+							__GLOBAL.confirm.push({
+								type: "fishing_sellAll",
+								messageID: info.messageID,
+								target: parseInt(threadID),
+								author: senderID
+							});
+						}, messageID);
 					}
 					await Fishing.updateInventory(senderID, inventory);
 					await Economy.addMoney(senderID, money);
-				} else if (content.indexOf("list") == 0) return api.sendMessage(
+				}
+				else if (content.indexOf("list") == 0)
+					return api.sendMessage(
 						"===== Danh sách tiền của mọi loại cá =====" +
 						"\n1/ Rác | 🗑️: 1 đô" +
 						"\n2/ Cá cỡ bình thường | 🐟: 30 đô" +
@@ -1785,6 +1820,127 @@ module.exports = function({ api, modules, config, __GLOBAL, User, Thread, Rank, 
 						"\n10/ Cá mập | 🦈: 1000 đô",
 						threadID, messageID
 					);
+				else if (content.indexOf("steal") == 0) {
+					let cooldown = 1800000;
+					Fishing.getStealFishingTime(senderID).then(async function(lastStealFishing) {
+						if (lastStealFishing !== null && cooldown - (Date.now() - lastStealFishing) > 0) {
+							let time = ms(cooldown - (Date.now() - lastStealFishing));
+							return api.sendMessage("Bạn vừa ăn trộm, để tránh bị bay hết cá vui lòng quay lại sau: " + time.minutes + " phút " + time.seconds + " giây ", threadID, messageID);
+						}
+						else {
+							let all = await User.getUsers(['name', 'uid']);
+							let victim = all[Math.floor(Math.random() * all.length)].uid;
+							let inventoryStealer = await Fishing.getInventory(senderID);
+							let inventoryVictim = await Fishing.getInventory(victim);
+							let nameVictim = await User.getName(victim);
+							let nameStealer = await User.getName(senderID);
+							let route = Math.floor(Math.random() * 3000);
+							let swap = Math.floor(Math.random() * 51);
+							if (victim == api.getCurrentUserID() && senderID == victim) return api.sendMessage("Cần lao vi tiên thủ\nNăng cán dĩ đắc thực\nVô vi thực đầu buồi\nThực cứt thế cho nhanh", threadID, messageID);
+							else if (senderID != victim && victim != api.getCurrentUserID()) {
+								if (swap >= 0 && swap <= 50) {
+									if (route == 3000) {
+										if (inventoryVictim.sharks == 0) return api.sendMessage("Bạn định trộm 1 con cá mập nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
+										else {
+											inventoryVictim.sharks -= 1;
+											inventoryStealer.sharks += 1;
+											api.sendMessage("Bạn vừa trộm được 1 baby sharks du du du du =))", threadID, messageID);
+										}
+									}
+									else if (route == 2999) {
+										if (inventoryVictim.squid == 0) return api.sendMessage("Bạn định trộm 1 con mực nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
+										else {
+											inventoryVictim.squid -= 1;
+											inventoryStealer.squid += 1;
+											api.sendMessage("Bạn vừa trộm được 1 con mực siu to khổng nồ", threadID, messageID);
+										}
+									}
+									else if (route == 2998) {
+										if (inventoryVictim.dolphins == 0) return api.sendMessage("Bạn định trộm 1 con cá heo nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
+										else {
+											inventoryVictim.dolphins -= 1;
+											inventoryStealer.dolphins += 1;
+											api.sendMessage("Bạn vừa trộm được 1 bé cá heo siu cute", threadID, messageID);
+										}
+									}
+									else if (route == 2997) {
+										if (inventoryVictim.whales == 0) return api.sendMessage("Bạn định trộm 1 con cá voi nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
+										else {
+											inventoryVictim.whales -= 1;
+											inventoryStealer.whales += 1;
+											api.sendMessage("Bạn vừa trộm được 1 con cá voi to chà bá", threadID, messageID);
+										}
+									}
+									else if (route == 2996) {
+										if (inventoryVictim.crocodiles == 0) return api.sendMessage("Bạn định trộm 1 con cá sấu nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
+										else {
+											inventoryVictim.crocodiles -= 1;
+											inventoryStealer.crocodiles += 1;
+											api.sendMessage("Bạn vừa trộm được 1 con cá sấu nhưng không xấu :v", threadID, messageID);
+										}
+									}
+									else if (route == 2995) {
+										if (inventoryVictim.blowfish == 0) return api.sendMessage("Bạn định trộm 1 con cá nóc nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
+										else {ầ
+											inventoryVictim.blowfish -= 1;
+											inventoryStealer.blowfish += 1;
+											api.sendMessage("Bạn vừa trộm được 1 con cá nóc :v", threadID, messageID);
+										}
+									}
+									else if (route == 2994) {
+										if (inventoryVictim.crabs == 0) return api.sendMessage("Bạn định trộm 1 con cá cua nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
+										else {
+											inventoryVictim.crabs -= 1;
+											inventoryStealer.crabs += 1;
+											api.sendMessage("Bạn vừa trộm được 1 con cua", threadID, messageID);
+										}
+									}
+									else if (route >= 2000 && route < 2994) {
+										if (inventoryVictim.fish2 == 0) return api.sendMessage("Bạn định trộm 1 con cá hiếm nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
+										else {
+											inventoryVictim.fish2 -= 1;
+											inventoryStealer.fish2 += 1;
+											api.sendMessage("Bạn vừa trộm được 1 con cá hiếm", threadID, messageID);
+										}
+									}
+									else if (route >= 1000 && route < 2000) {
+										if (inventoryVictim.fish1 == 0) return api.sendMessage("Bạn định trộm 1 con cá bé nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
+										else {
+											inventoryVictim.fish1 -= 1;
+											inventoryStealer.fish1 += 1;
+											api.sendMessage("Bạn vừa trộm được 1 con cá bé", threadID, messageID);
+										}
+									}
+									else if (route >= 0 && route < 1000) {
+										if (inventoryVictim.trash == 0) return api.sendMessage("Bạn định trộm 1 cục rác (?) nhưng có vẻ là nạn nhân chưa câu được.", threadID, messageID);
+										else {
+											inventoryVictim.trash -= 1;
+											inventoryStealer.trash += 1;
+											api.sendMessage("Bạn vừa trộm được 1 cục rác to tướng :v", threadID, messageID);
+										}
+									}
+									await Fishing.updateInventory(victim, inventoryVictim);
+									await Fishing.updateInventory(senderID, inventoryStealer);
+								}
+								else if (swap > 50) {
+									inventoryStealer.trash = 0;
+									inventoryStealer.fish1 = 0;
+									inventoryStealer.fish2 = 0;
+									inventoryStealer.crabs = 0;
+									inventoryStealer.crocodiles = 0;
+									inventoryStealer.whales = 0;
+									inventoryStealer.dolphins = 0;
+									inventoryStealer.blowfish = 0;
+									inventoryStealer.squid = 0;
+									inventoryStealer.sharks = 0;
+									api.sendMessage("Đi trộm không để ý, gặp bảo vệ, bạn bị bay hết cá trong túi rồi xD", threadID, messageID);
+									await Fishing.updateInventory(senderID, inventoryStealer);
+								}
+							}
+						}
+						Fishing.updateStealFishingTime(senderID, Date.now());
+					});
+				}
 			})();
 		
 

@@ -1,10 +1,10 @@
 const logger = require("../modules/log.js");
 module.exports = function({ models, api }) {
-	const User = models.use("user");
+	const Rank = models.use("user");
 	const FACTOR = 3;
 
 	function getPoint(uid) {
-		return User.findOne({
+		return Rank.findOne({
 			where: {
 				uid
 			}
@@ -15,7 +15,7 @@ module.exports = function({ models, api }) {
 	}
 
 	function updatePoint(uid, pointIncrement) {
-		return User.findOne({
+		return Rank.findOne({
 			where: {
 				uid
 			}
@@ -32,7 +32,7 @@ module.exports = function({ models, api }) {
 	}
 
 	function setPoint(uid, point) {
-		return User.findOne({
+		return Rank.findOne({
 			where: {
 				uid
 			}
@@ -64,25 +64,9 @@ module.exports = function({ models, api }) {
 		return { level, expCurrent, expNextLevel };
 	}
 
-	function getGlobalRank() {
-		return User.findAll({ order: [['point', 'DESC']], attributes: ['num','uid','point']
-		}).then(function(data) {
-			if (!data) return;
-			var value = [];
-			data.forEach(item => value.push(item))
-			return value;
-		}).then(function() {
-			return true;
-		}).catch(function(error) {
-			logger(error, 2);
-			return false;
-		})
-	}
-
 	return {
 		getPoint,
 		updatePoint,
-		setPoint,
-		expToLevel
+		setPoint
 	};
 };

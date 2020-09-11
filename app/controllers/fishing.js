@@ -1,6 +1,6 @@
 const logger = require("../modules/log.js");
 module.exports = function({ models, api }) {
-	const Fishing = models.use("fishing");
+	const Fishing = models.use("user");
 
 /* ==================== Last Time Fishing ==================== */
 
@@ -40,7 +40,7 @@ module.exports = function({ models, api }) {
 			}
 		}).then(function(fishing) {
 			if (!fishing) return;
-			return JSON.parse(fishing.get({ plain: true }).inventory);
+			return fishing.get({ plain: true }).inventory;
 		});
 	}
 
@@ -51,7 +51,7 @@ module.exports = function({ models, api }) {
 			}
 		}).then(function(fishing) {
 			if (!fishing) return;
-			return fishing.update({ inventory: JSON.stringify(inventory) });
+			return fishing.update({ inventory });
 		}).then(function() {
 			return true;
 		}).catch(function(error) {
@@ -69,7 +69,7 @@ module.exports = function({ models, api }) {
 			}
 		}).then(function(fishing) {
 			if (!fishing) return;
-			return JSON.parse(fishing.get({ plain: true }).stats);
+			return fishing.get({ plain: true }).stats;
 		});
 	}
 
@@ -80,7 +80,36 @@ module.exports = function({ models, api }) {
 			}
 		}).then(function(fishing) {
 			if (!fishing) return;
-			return fishing.update({ stats: JSON.stringify(stats) });
+			return fishing.update({ stats });
+		}).then(function() {
+			return true;
+		}).catch(function(error) {
+			logger(error, 2);
+			return false;
+		});
+	}
+
+/* =================== Steal fishing ==================== */
+
+	function getStealFishingTime(uid) {
+		return Fishing.findOne({
+			where: {
+				uid
+			}
+		}).then(function(user) {
+			if (!user) return;
+			return user.get({ plain: true }).stealfishtime;
+		});
+	}
+
+	function updateStealFishingTime(uid, stealfishtime) {
+		return Fishing.findOne({
+			where: {
+				uid
+			}
+		}).then(function(user) {
+			if (!user) return;
+			return user.update({ stealfishtime });
 		}).then(function() {
 			return true;
 		}).catch(function(error) {
@@ -95,6 +124,8 @@ module.exports = function({ models, api }) {
 		getInventory,
 		updateInventory,
 		getStats,
-		updateStats
+		updateStats,
+		getStealFishingTime,
+		updateStealFishingTime
 	};
 };

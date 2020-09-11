@@ -2,6 +2,8 @@ require('dotenv').config();
 const fs = require("fs-extra");
 const login = require("fca-unofficial");
 const readline = require("readline");
+const totp = require("totp-generator");
+const cmd = require("node-cmd");
 
 var rl = readline.createInterface({
 	input: process.stdin,
@@ -23,11 +25,14 @@ login(obj, option, (err, api) => {
 	if (err) {
 		switch (err.error) {
 			case "login-approval":
-				console.log("Nhập mã xác minh 2 lớp:");
-				rl.on("line", line => {
-					err.continue(line);
-					rl.close();
-				});
+				if (process.env.OTPKEY) err.continue(totp(process.env.OTPKEY));
+				else {
+					console.log("Nhập mã xác minh 2 lớp:");
+					rl.on("line", line => {
+						err.continue(line);
+						rl.close();
+					});
+				}
 				break;
 			default:
 			console.error(err);
@@ -38,4 +43,5 @@ login(obj, option, (err, api) => {
 	var addNew = fs.createWriteStream(__dirname + "/appstate.json", { flags: "w" });
 	addNew.write(json);
 	console.log("Đã ghi xong appstate!");
+	(process.env.API_SERVER_EXTERNAL == 'https://api.glitch.com') ? cmd.run('refresh') : cmd .run('pm2 reload 0');
 });

@@ -1,6 +1,6 @@
 const logger = require("../modules/log.js");
 module.exports = function({ models, api, Economy }) {
-	const Nsfw = models.use("nsfw");
+	const Nsfw = models.use("user");
 
 	/* ==================== NSFW ==================== */
 	
@@ -131,7 +131,7 @@ module.exports = function({ models, api, Economy }) {
 			Nsfw.update({ hentaiLeft: 12, pornLeft: 6 }, {where: {nsfwTier: 3}});
 			Nsfw.update({ hentaiLeft: 16, pornLeft: 8 }, {where: {nsfwTier: 4}});
 			Nsfw.update({ hentaiLeft: -1, pornLeft: 10 }, {where: {nsfwTier: 5}});
-			return true
+			return true;
 		}
 		catch (err) {
 			logger(err, 2);

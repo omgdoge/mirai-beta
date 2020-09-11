@@ -1,6 +1,6 @@
 const logger = require("../modules/log.js");
 module.exports = function({ models, api }) {
-	const Economy = models.use("economy");
+	const Economy = models.use("user");
 	
 /* ==================== Daily ==================== */
 

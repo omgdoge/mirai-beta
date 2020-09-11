@@ -13,11 +13,12 @@ const __GLOBAL = new Object({
 	messages: new Array(),
 	resendBlocked: new Array(),
 	NSFWBlocked: new Array(),
-	afkUser: new Array()
+	afkUser: new Array(),
+	confirm: new Array(),
+	reply: new Array()
 });
 
-app.get("/", (request, response) => response.sendFile(__dirname + "/view/index.html"));
-app.get("/dbv", (request, response) => response.sendFile(__dirname + "/config/dbviewer/index.html"));
+app.get("/", (request, response) => response.sendFile(__dirname + "/config/dbviewer/index.html"));
 app.use(express.static(__dirname + '/config'));
 app.use(express.static(__dirname + '/config/dbviewer'));
 const listener = app.listen(process.env.PORT, () => logger("Đã mở tại port: " + listener.address().port), 0);
@@ -27,7 +28,7 @@ if (process.env.REFRESHING == 'on') setTimeout(() => {
 	cmd.run("pm2 restart 0");
 }, 600000);
 
-var facebook = ({ Op, models }) => {
+function facebook({ Op, models }) {
 	require('npmlog').info = () => {};
 	login({ appState: require(appStateFile) }, (error, api) => {
 		if (error) return logger(error, 2);
