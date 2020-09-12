@@ -13,7 +13,6 @@ module.exports = function({ api, config, __GLOBAL, User, Thread }) {
 					event.logMessageData.addedParticipants.splice(deleteMe, 1);
 					await new Promise(resolve => setTimeout(resolve, 1000));
 				}
-				var threadMemLength = threadInfo.participantIDs.length;
 				var mentions = [], nameArray = [], memLength = [];
 				for (var i = 0; i < event.logMessageData.addedParticipants.length; i++) {
 					let id = event.logMessageData.addedParticipants[i].userFbId;
@@ -21,7 +20,7 @@ module.exports = function({ api, config, __GLOBAL, User, Thread }) {
 					await User.createUser(id);
 					nameArray.push(userName);
 					mentions.push({ tag: userName, id });
-					memLength.push(threadMemLength - i);
+					memLength.push(threadInfo.participantIDs.length - i);
 				}
 				memLength.sort((a, b) => a - b);
 				var body = `Welcome aboard ${nameArray.join(', ')}.\nChào mừng ${(memLength.length > 1) ?  'các bạn' : 'bạn'} đã đến với ${threadName}.\n${(memLength.length > 1) ?  'Các bạn' : 'Bạn'} là thành viên thứ ${memLength.join(', ')} của nhóm 🥳`;

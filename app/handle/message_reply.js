@@ -17,7 +17,7 @@ function writeENV(tag, input) {
 }
 
 module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishing, Nsfw }) {
-	return function({ event }) {
+	return async function({ event }) {
 		const cmd = require("node-cmd");
 		const axios = require('axios');
 		const { reply } = __GLOBAL;
@@ -53,22 +53,20 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 						});
 					}
 					else if (body == '3') {
-						(async () => {
-							let admins = '';
-							let users = await User.getUsers(['name', 'uid']);
-							users.forEach(i => {
-								if (config.admins.includes(i.uid)) admins += `\n- ${i.name}`;
-							})
-							api.sendMessage(`Admins hiện tại của bot là: ${admins}\n=== Để đổi bạn hãy reply đoạn tin nhắn này với uid (hoặc uid1_uid2_...) bạn muốn đổi thành ===`, threadID, (err, info) => {
-								if (err) throw err;
-								__GLOBAL.reply.push({
-									type: "admin_setAdmin",
-									messageID: info.messageID,
-									target: parseInt(threadID),
-									author: senderID
-								});
+						let admins = '';
+						let users = await User.getUsers(['name', 'uid']);
+						users.forEach(i => {
+							if (config.admins.includes(i.uid)) admins += `\n- ${i.name}`;
+						})
+						api.sendMessage(`Admins hiện tại của bot là: ${admins}\n=== Để đổi bạn hãy reply đoạn tin nhắn này với uid (hoặc uid1_uid2_...) bạn muốn đổi thành ===`, threadID, (err, info) => {
+							if (err) throw err;
+							__GLOBAL.reply.push({
+								type: "admin_setAdmin",
+								messageID: info.messageID,
+								target: parseInt(threadID),
+								author: senderID
 							});
-						})();
+						});
 					}
 					else if (body == '4') {
 						api.sendMessage(`Tự khởi động lại bot hiện tại đang là: ${process.env.REFRESHING}\n=== Để đổi bạn hãy reply đoạn tin nhắn này kèm với on hay off ===`, threadID, (err, info) => {
@@ -115,20 +113,16 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 						}).catch(err => api.sendMessage('Không thể kiểm tra cập nhật!', threadID));
 					}
 					else if (body == '8') {
-						(async () => {
-							var data = await User.getUsers(['name', 'uid'], {block: true});
-							var userBlockMsg = "";
-							data.forEach(user => userBlockMsg += `\n${user.name} - ${user.uid}`);
-							api.sendMessage((userBlockMsg) ? `🛠 | Đây là danh sách các user bị block:${userBlockMsg}` : 'Chưa có user nào bị bạn cấm!', threadID, messageID);
-						})();
+						var data = await User.getUsers(['name', 'uid'], {block: true});
+						var userBlockMsg = "";
+						data.forEach(user => userBlockMsg += `\n${user.name} - ${user.uid}`);
+						api.sendMessage((userBlockMsg) ? `🛠 | Đây là danh sách các user bị block:${userBlockMsg}` : 'Chưa có user nào bị bạn cấm!', threadID, messageID);
 					}
 					else if (body == '9') {
-						(async () => {
-							var data = await Thread.getThreads(['name', 'threadID'], {block: true});
-							var threadBlockMsg = "";
-							data.forEach(thread => threadBlockMsg += `\n${thread.name} - ${thread.threadID}`);
-							api.sendMessage((threadBlockMsg) ? `🛠 | Đây là danh sách các nhóm bị block:${threadBlockMsg}` : 'Chưa có nhóm nào bị bạn cấm!', threadID, messageID);
-						})();
+						var data = await Thread.getThreads(['name', 'threadID'], {block: true});
+						var threadBlockMsg = "";
+						data.forEach(thread => threadBlockMsg += `\n${thread.name} - ${thread.threadID}`);
+						api.sendMessage((threadBlockMsg) ? `🛠 | Đây là danh sách các nhóm bị block:${threadBlockMsg}` : 'Chưa có nhóm nào bị bạn cấm!', threadID, messageID);
 					}
 					else if (body == '10') {
 						api.sendMessage(`Nhập thông báo bạn muốn gửi cho toàn bộ`, threadID, (err, info) => {
@@ -217,37 +211,33 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 					break;
 				}
 				case "admin_searchUser": {
-					(async () => {
-						let getUsers = await User.getUsers(['uid', 'name']);
-						let matchUsers = [], a = '', b = 0;
-						getUsers.forEach(i => {
-							if (i.name.toLowerCase().includes(body.toLowerCase())) {
-								matchUsers.push({
-									name: i.name,
-									id: i.uid
-								});
-							}
-						});
-						matchUsers.forEach(i => a += `\n${b += 1}. ${i.name} - ${i.id}`);
-						(matchUsers.length > 0) ? api.sendMessage(`Đã tìm thấy ${b} user${(b > 1) ? 's' : ''}:${a}`, threadID) : api.sendMessage(`Không tìm thấy user nào có tên ${body}`, threadID);
-					})();
+					let getUsers = await User.getUsers(['uid', 'name']);
+					let matchUsers = [], a = '', b = 0;
+					getUsers.forEach(i => {
+						if (i.name.toLowerCase().includes(body.toLowerCase())) {
+							matchUsers.push({
+								name: i.name,
+								id: i.uid
+							});
+						}
+					});
+					matchUsers.forEach(i => a += `\n${b += 1}. ${i.name} - ${i.id}`);
+					(matchUsers.length > 0) ? api.sendMessage(`Đã tìm thấy ${b} user${(b > 1) ? 's' : ''}:${a}`, threadID) : api.sendMessage(`Không tìm thấy user nào có tên ${body}`, threadID);
 					break;
 				}
 				case "admin_searchThread": {
-					(async () => {
-						let getThreads = (await Thread.getThreads(['threadID', 'name'])).filter(item => !!item.name);
-						let matchThreads = [], a = '', b = 0;
-						getThreads.forEach(i => {
-							if (i.name.toLowerCase().includes(body.toLowerCase())) {
-								matchThreads.push({
-									name: i.name,
-									id: i.threadID
-								});
-							}
-						});
-						matchThreads.forEach(i => a += `\n${b += 1}. ${i.name} - ${i.id}`);
-						(matchThreads.length > 0) ? api.sendMessage(`Đã tìm thấy ${b} nhóm:${a}`, threadID) : api.sendMessage(`Không tìm thấy nhóm nào có tên ${body}`, threadID);
-					})();
+					let getThreads = (await Thread.getThreads(['threadID', 'name'])).filter(item => !!item.name);
+					let matchThreads = [], a = '', b = 0;
+					getThreads.forEach(i => {
+						if (i.name.toLowerCase().includes(body.toLowerCase())) {
+							matchThreads.push({
+								name: i.name,
+								id: i.threadID
+							});
+						}
+					});
+					matchThreads.forEach(i => a += `\n${b += 1}. ${i.name} - ${i.id}`);
+					(matchThreads.length > 0) ? api.sendMessage(`Đã tìm thấy ${b} nhóm:${a}`, threadID) : api.sendMessage(`Không tìm thấy nhóm nào có tên ${body}`, threadID);
 					break;
 				}
 			}

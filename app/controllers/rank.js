@@ -3,48 +3,31 @@ module.exports = function({ models, api }) {
 	const Rank = models.use("user");
 	const FACTOR = 3;
 
-	function getPoint(uid) {
-		return Rank.findOne({
-			where: {
-				uid
-			}
-		}).then(function(user) {
-			if (!user) return;
-			return user.get({ plain: true }).point;
-		}).then(e => getInfo(e));
+	async function getPoint(uid) {
+		return (await Rank.findOne({ where: { uid } })).get({ plain: true }).point;
 	}
 
-	function updatePoint(uid, pointIncrement) {
-		return Rank.findOne({
-			where: {
-				uid
-			}
-		}).then(function(user) {
-			if (!user) return;
-			const pointData = user.get({ plain: true }).point;
-			return user.update({ point: pointData + pointIncrement });
-		}).then(function() {
+	async function updatePoint(uid, pointIncrement) {
+		let point = (await getPoint(uid)) + pointIncrement;
+		try {
+			(await Rank.findOne({ where: { uid } })).update({ point });
 			return true;
-		}).catch(function(error) {
+		}
+		catch (err) {
 			logger(error, 2);
 			return false;
-		});
+		}
 	}
 
-	function setPoint(uid, point) {
-		return Rank.findOne({
-			where: {
-				uid
-			}
-		}).then(function(user) {
-			if (!user) return;
-			return user.update({ point });
-		}).then(function() {
+	async function setPoint(uid, point) {
+		try {
+			(await Rank.findOne({ where: { uid } })).update({ point });
 			return true;
-		}).catch(function(error) {
+		}
+		catch (err) {
 			logger(error, 2);
 			return false;
-		});
+		}
 	}
 
 	function expToLevel(point) {

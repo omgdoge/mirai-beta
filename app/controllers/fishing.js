@@ -4,118 +4,70 @@ module.exports = function({ models, api }) {
 
 /* ==================== Last Time Fishing ==================== */
 
-	function lastTimeFishing(uid) {
-		return Fishing.findOne({
-			where: {
-				uid
-			}
-		}).then(function(fishing) {
-			if (!fishing) return;
-			return fishing.get({ plain: true }).lastTimeFishing;
-		});
+	async function lastTimeFishing(uid) {
+		return (await Fishing.findOne({ where: { uid } })).get({ plain: true }).lastTimeFishing;
 	}
 
-	function updateLastTimeFishing(uid, lastTimeFishing) {
-		return Fishing.findOne({
-			where: {
-				uid
-			}
-		}).then(function(fishing) {
-			if (!fishing) return;
-			return fishing.update({ lastTimeFishing });
-		}).then(function() {
+	async function updateLastTimeFishing(uid, lastTimeFishing) {
+		try {
+			(await Fishing.findOne({ where: { uid } })).update({ lastTimeFishing });
 			return true;
-		}).catch(function(error) {
+		}
+		catch (err) {
 			logger(error, 2);
 			return false;
-		});
+		}
 	}
 	
 /* ==================== Inventory ==================== */
 
-	function getInventory(uid) {
-		return Fishing.findOne({
-			where: {
-				uid
-			}
-		}).then(function(fishing) {
-			if (!fishing) return;
-			return fishing.get({ plain: true }).inventory;
-		});
+	async function getInventory(uid) {
+		return (await Fishing.findOne({ where: { uid } })).get({ plain: true }).inventory;
 	}
 
-	function updateInventory(uid, inventory) {
-		return Fishing.findOne({
-			where: {
-				uid
-			}
-		}).then(function(fishing) {
-			if (!fishing) return;
-			return fishing.update({ inventory });
-		}).then(function() {
+	async function updateInventory(uid, inventory) {
+		try {
+			(await Fishing.findOne({ where: { uid } })).update({ inventory });
 			return true;
-		}).catch(function(error) {
+		}
+		catch (err) {
 			logger(error, 2);
 			return false;
-		});
+		}
 	}
 
 /* ==================== Stats ==================== */
 
-	function getStats(uid) {
-		return Fishing.findOne({
-			where: {
-				uid
-			}
-		}).then(function(fishing) {
-			if (!fishing) return;
-			return fishing.get({ plain: true }).stats;
-		});
+	async function getStats(uid) {
+		return (await Fishing.findOne({ where: { uid } })).get({ plain: true }).stats;
 	}
 
-	function updateStats(uid, stats) {
-		return Fishing.findOne({
-			where: {
-				uid
-			}
-		}).then(function(fishing) {
-			if (!fishing) return;
-			return fishing.update({ stats });
-		}).then(function() {
+	async function updateStats(uid, stats) {
+		try {
+			(await Fishing.findOne({ where: { uid } })).update({ stats });
 			return true;
-		}).catch(function(error) {
+		}
+		catch (err) {
 			logger(error, 2);
 			return false;
-		});
+		}
 	}
 
 /* =================== Steal fishing ==================== */
 
-	function getStealFishingTime(uid) {
-		return Fishing.findOne({
-			where: {
-				uid
-			}
-		}).then(function(user) {
-			if (!user) return;
-			return user.get({ plain: true }).stealfishtime;
-		});
+	async function getStealFishingTime(uid) {
+		return (await Fishing.findOne({ where: { uid } })).get({ plain: true }).stealfishtime;
 	}
 
-	function updateStealFishingTime(uid, stealfishtime) {
-		return Fishing.findOne({
-			where: {
-				uid
-			}
-		}).then(function(user) {
-			if (!user) return;
-			return user.update({ stealfishtime });
-		}).then(function() {
+	async function updateStealFishingTime(uid, stealfishtime) {
+		try {
+			(await Fishing.findOne({ where: { uid } })).update({ stealfishtime });
 			return true;
-		}).catch(function(error) {
+		}
+		catch (err) {
 			logger(error, 2);
 			return false;
-		});
+		}
 	}
 
 	return {

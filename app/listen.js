@@ -31,7 +31,6 @@ module.exports = function({ api, models, __GLOBAL }) {
 
 	return function(error, event) {
 		if (error) return logger(error, 2);
-		//console.log(event);
 		switch (event.type) {
 			case "message":
 			case "message_reply":

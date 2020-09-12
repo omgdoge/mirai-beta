@@ -4,11 +4,15 @@ module.exports = function({ models, api }) {
 
 	async function createThread(threadID) {
 		if (!await Thread.findOne({ where: { threadID } })) {
-			let threadInfo = await api.getThreadInfo(threadID);
+			let threadInfo = await getInfo(threadID);
 			let name = threadInfo.name;
 			let [ thread, created ] = await Thread.findOrCreate({ where: { threadID }, defaults: { name } });
 			if (created) return logger(threadID, 'New Thread');
 		}
+	}
+
+	async function getInfo(threadID) {
+		return await api.getThreadInfo(threadID);
 	}
 
 	async function setThread(threadID, options = {}) {
@@ -92,6 +96,7 @@ module.exports = function({ models, api }) {
 
 	return {
 		createThread,
+		getInfo,
 		setThread,
 		delThread,
 		getName,

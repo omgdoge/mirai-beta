@@ -59,14 +59,15 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 		logger('Tạo file shortcut mới thành công!');
 	}
 
-	return function({ event }) {
+	return async function({ event }) {
 		let { body: contentMessage, senderID, threadID, messageID } = event;
 		senderID = parseInt(senderID);
 		threadID = parseInt(threadID);
 
+		await User.createUser(senderID);
+		await Thread.createThread(threadID);
+
 		if (__GLOBAL.userBlocked.includes(senderID)) return;
-		User.createUser(senderID);
-		Thread.createThread(threadID);
 
 		__GLOBAL.messages.push({
 			msgID: messageID,
@@ -75,26 +76,22 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 
 		if (event.mentions) {
 			var mentions = Object.keys(event.mentions);
-			mentions.forEach(mention => {
+			mentions.forEach(async mention => {
 				if (__GLOBAL.afkUser.includes(parseInt(mention))) {
-					(async () => {
-						var reason = await User.getReason(mention);
-						var name = await User.getName(mention);
-						reason == "none" ? api.sendMessage(`${name} Hiện tại đang bận!`, threadID, messageID) : api.sendMessage(`${name} Hiện tại đang bận với lý do: ${reason}`, threadID, messageID);
-					})();
+					var reason = await User.getReason(mention);
+					var name = await User.getName(mention);
+					reason == "none" ? api.sendMessage(`${name} Hiện tại đang bận!`, threadID, messageID) : api.sendMessage(`${name} Hiện tại đang bận với lý do: ${reason}`, threadID, messageID);
 					return;
 				}
 			});
 		}
 
 		if (__GLOBAL.afkUser.includes(parseInt(senderID))) {
-			(async () => {
-				await User.nonafk(senderID);
-				await User.updateReason(senderID, "");
-				__GLOBAL.afkUser.splice(__GLOBAL.afkUser.indexOf(senderID), 1);
-				var name = await User.getName(senderID);
-				return api.sendMessage(`Chào mừng bạn đã quay trở lại, ${name}`,threadID);
-			})();
+			await User.nonafk(senderID);
+			await User.updateReason(senderID, "");
+			__GLOBAL.afkUser.splice(__GLOBAL.afkUser.indexOf(senderID), 1);
+			var name = await User.getName(senderID);
+			return api.sendMessage(`Chào mừng bạn đã quay trở lại, ${name}`,threadID);
 		}
 
 		if (!contentMessage) return;
@@ -111,7 +108,8 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 					if (shortOut.indexOf(" | ") !== -1) {
 						var arrayOut = shortOut.split(" | ");
 						return api.sendMessage(`${arrayOut[Math.floor(Math.random() * arrayOut.length)]}`, threadID);
-					} else return api.sendMessage(`${shortOut}`, threadID);
+					}
+					else return api.sendMessage(`${shortOut}`, threadID);
 				}
 			}
 		}
@@ -139,17 +137,15 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 		if (contentMessage.indexOf(`${prefix}report`) == 0) {
 			var content = contentMessage.slice(prefix.length + 7, contentMessage.length);
 			if (!content) return api.sendMessage("Có vẻ như bạn chưa nhập thông tin, vui lòng nhập thông tin lỗi mà bạn gặp!", threadID, messageID);
-			(async () => {
-				var userName = await User.getName(senderID);
-				var threadName = await Thread.getName(threadID);
-				api.sendMessage(
-					"Báo cáo từ: " + userName +
-					"\nGroup gặp lỗi: " + threadName +
-					"\nLỗi gặp phải: " + content +
-					"\nThời gian báo: " + moment.tz("Asia/Ho_Chi_Minh").format("HH:mm:ss"),
-					admins[0]
-				);
-			})()
+			var userName = await User.getName(senderID);
+			var threadName = await Thread.getName(threadID);
+			api.sendMessage(
+				"Báo cáo từ: " + userName +
+				"\nGroup gặp lỗi: " + threadName +
+				"\nLỗi gặp phải: " + content +
+				"\nThời gian báo: " + moment.tz("Asia/Ho_Chi_Minh").format("HH:mm:ss"),
+				admins[0]
+			);
 			return api.sendMessage("Thông tin lỗi của bạn đã được gửi về admin!", threadID, messageID);
 		}
 
@@ -483,27 +479,25 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 	/* ==================== Media Commands ==================== */
 
 		//youtube music
-		if (contentMessage.indexOf(`${prefix}audio`) == 0)
-			return (async () => {
-				var content = (event.type == "message_reply") ? event.messageReply.body : contentMessage.slice(prefix.length + 6, contentMessage.length);
-				var ytdl = require("ytdl-core");
-				var ffmpeg = require("fluent-ffmpeg");
-				var ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
-				ffmpeg.setFfmpegPath(ffmpegPath);
-				if (content.indexOf("http") == -1) content = (await axios.get(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&key=${googleSearch}&q=${encodeURIComponent(content)}`, {responseType: 'json'})).data.items[0].id.videoId;
-				ytdl.getInfo(content, (err, info) => (info.length_seconds > 360) ? api.sendMessage("Độ dài video vượt quá mức cho phép, tối đa là 6 phút!", threadID, messageID) : '');
-				return ffmpeg().input(ytdl(content)).toFormat("mp3").pipe(fs.createWriteStream(__dirname + "/src/music.mp3")).on("close", () => api.sendMessage({attachment: fs.createReadStream(__dirname + "/src/music.mp3")}, threadID, () => fs.unlinkSync(__dirname + "/src/music.mp3"), messageID));
-			})();
+		if (contentMessage.indexOf(`${prefix}audio`) == 0) {
+			var content = (event.type == "message_reply") ? event.messageReply.body : contentMessage.slice(prefix.length + 6, contentMessage.length);
+			var ytdl = require("ytdl-core");
+			var ffmpeg = require("fluent-ffmpeg");
+			var ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+			ffmpeg.setFfmpegPath(ffmpegPath);
+			if (content.indexOf("http") == -1) content = (await axios.get(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&key=${googleSearch}&q=${encodeURIComponent(content)}`, {responseType: 'json'})).data.items[0].id.videoId;
+			ytdl.getInfo(content, (err, info) => (info.length_seconds > 360) ? api.sendMessage("Độ dài video vượt quá mức cho phép, tối đa là 6 phút!", threadID, messageID) : '');
+			return ffmpeg().input(ytdl(content)).toFormat("mp3").pipe(fs.createWriteStream(__dirname + "/src/music.mp3")).on("close", () => api.sendMessage({attachment: fs.createReadStream(__dirname + "/src/music.mp3")}, threadID, () => fs.unlinkSync(__dirname + "/src/music.mp3"), messageID));
+		}
 
 		//youtube video
-		if (contentMessage.indexOf(`${prefix}video`) == 0)
-			return (async () => {
-				var content = (event.type == "message_reply") ? event.messageReply.body : contentMessage.slice(prefix.length + 6, contentMessage.length);
-				var ytdl = require("ytdl-core");
-				if (content.indexOf("http") == -1) content = (await axios.get(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&key=${googleSearch}&q=${encodeURIComponent(content)}`, {responseType: 'json'})).data.items[0].id.videoId;
-				ytdl.getInfo(content, (err, info) => (info.length_seconds > 360) ? api.sendMessage("Độ dài video vượt quá mức cho phép, tối đa là 6 phút!", threadID, messageID) : '');
-				return ytdl(content).pipe(fs.createWriteStream(__dirname + "/src/video.mp4")).on("close", () => api.sendMessage({attachment: fs.createReadStream(__dirname + "/src/video.mp4")}, threadID, () => fs.unlinkSync(__dirname + "/src/video.mp4"), messageID));
-			})();
+		if (contentMessage.indexOf(`${prefix}video`) == 0) {
+			var content = (event.type == "message_reply") ? event.messageReply.body : contentMessage.slice(prefix.length + 6, contentMessage.length);
+			var ytdl = require("ytdl-core");
+			if (content.indexOf("http") == -1) content = (await axios.get(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&key=${googleSearch}&q=${encodeURIComponent(content)}`, {responseType: 'json'})).data.items[0].id.videoId;
+			ytdl.getInfo(content, (err, info) => (info.length_seconds > 360) ? api.sendMessage("Độ dài video vượt quá mức cho phép, tối đa là 6 phút!", threadID, messageID) : '');
+			return ytdl(content).pipe(fs.createWriteStream(__dirname + "/src/video.mp4")).on("close", () => api.sendMessage({attachment: fs.createReadStream(__dirname + "/src/video.mp4")}, threadID, () => fs.unlinkSync(__dirname + "/src/video.mp4"), messageID));
+		}
 
 		//anime
 		if (contentMessage.indexOf(`${prefix}anime`) == 0) {
@@ -953,32 +947,30 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 
 		//rank
 		if (contentMessage.indexOf(`${prefix}rank`) == 0) {
-			(async () => {
-				const createCard = require("../controllers/rank_card.js");
-				var content = contentMessage.slice(prefix.length + 5, contentMessage.length);
-				let all = await User.getUsers(['uid', 'point']);
-				all.sort((a, b) => {
-					if (a.point > b.point) return -1;
-					if (a.point < b.point) return 1;
-					if (a.uid > b.uid) return 1;
-					if (a.uid < b.uid) return -1;
+			const createCard = require("../controllers/rank_card.js");
+			var content = contentMessage.slice(prefix.length + 5, contentMessage.length);
+			let all = await User.getUsers(['uid', 'point']);
+			all.sort((a, b) => {
+				if (a.point > b.point) return -1;
+				if (a.point < b.point) return 1;
+				if (a.uid > b.uid) return 1;
+				if (a.uid < b.uid) return -1;
+			});
+			if (!content) {
+				let rank = all.findIndex(item => item.uid == senderID) + 1;
+				let name = await User.getName(senderID);
+				if (rank == 0) api.sendMessage('Bạn hiện chưa có trong database nên không thể xem rank, hãy thử lại sau 5 giây.', threadID, messageID);
+				else Rank.getPoint(senderID).then(point => createCard({ id: senderID, name, rank, ...point })).then(path => api.sendMessage({attachment: fs.createReadStream(path)}, threadID, () => fs.unlinkSync(path), messageID));
+			}
+			else {
+				let mentions = Object.keys(event.mentions);
+				mentions.forEach(i => {
+					let name = event.mentions[i].replace('@', '');
+					let rank = all.findIndex(item => item.uid == i) + 1;
+					if (rank == 0) api.sendMessage(name + ' chưa có trong database nên không thể xem rank.', threadID, messageID);
+					else Rank.getPoint(i).then(point => createCard({ id: parseInt(i), name, rank, ...point })).then(path => api.sendMessage({attachment: fs.createReadStream(path)}, threadID, () => fs.unlinkSync(path), messageID));
 				});
-				if (!content) {
-					let rank = all.findIndex(item => item.uid == senderID) + 1;
-					let name = await User.getName(senderID);
-					if (rank == 0) api.sendMessage('Bạn hiện chưa có trong database nên không thể xem rank, hãy thử lại sau 5 giây.', threadID, messageID);
-					else Rank.getPoint(senderID).then(point => createCard({ id: senderID, name, rank, ...point })).then(path => api.sendMessage({attachment: fs.createReadStream(path)}, threadID, () => fs.unlinkSync(path), messageID));
-				}
-				else {
-					let mentions = Object.keys(event.mentions);
-					mentions.forEach(i => {
-						let name = event.mentions[i].replace('@', '');
-						let rank = all.findIndex(item => item.uid == i) + 1;
-						if (rank == 0) api.sendMessage(name + ' chưa có trong database nên không thể xem rank.', threadID, messageID);
-						else Rank.getPoint(i).then(point => createCard({ id: parseInt(i), name, rank, ...point })).then(path => api.sendMessage({attachment: fs.createReadStream(path)}, threadID, () => fs.unlinkSync(path), messageID));
-					});
-				}
-			})();
+			}
 			return;
 		}
 
@@ -1121,19 +1113,17 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 
 		//afk
 		if (contentMessage.indexOf(`${prefix}afk`) == 0) {
-			(async () => {
-				var content = contentMessage.slice(prefix.length + 4, contentMessage.length);
-				if (content) {
-					await User.updateReason(senderID, content);
-					api.sendMessage(`🛠 | Bạn đã bật mode afk với lý do: ${content}`, threadID, messageID);
-				}
-				else {
-					await User.updateReason(senderID, 'none');
-					api.sendMessage(`🛠 | Bạn đã bật mode afk`, threadID, messageID);
-				}
-				await User.afk(senderID);
-				__GLOBAL.afkUser.push(parseInt(senderID));
-			})();
+			var content = contentMessage.slice(prefix.length + 4, contentMessage.length);
+			if (content) {
+				await User.updateReason(senderID, content);
+				api.sendMessage(`🛠 | Bạn đã bật mode afk với lý do: ${content}`, threadID, messageID);
+			}
+			else {
+				await User.updateReason(senderID, 'none');
+				api.sendMessage(`🛠 | Bạn đã bật mode afk`, threadID, messageID);
+			}
+			await User.afk(senderID);
+			__GLOBAL.afkUser.push(parseInt(senderID));
 			return;
 		}
 
@@ -1357,28 +1347,24 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 		//get nsfw tier
 		if (contentMessage == `${prefix}mynsfw`) {
 			if (__GLOBAL.NSFWBlocked.includes(threadID)) return api.sendMessage("Nhóm này đang bị tắt NSFW!", threadID, messageID);
-			(async () => {
-				let tier = await Nsfw.getNSFW(senderID);
-				let hentai = await Nsfw.hentaiUseLeft(senderID);
-				let porn = await Nsfw.pornUseLeft(senderID);
-				if (tier == -1) api.sendMessage('Bạn đang ở God Mode.\nBạn sẽ không bị giới hạn số lần dùng lệnh NSFW.', threadID, messageID);
-				else api.sendMessage(`Hạng NSFW của bạn là ${tier}.\nSố lần sử dụng ${prefix}porn còn lại: ${porn}.\nSố lần sử dụng ${prefix}hentai còn lại: ${hentai}.`, threadID, messageID);
-			})();
+			let tier = await Nsfw.getNSFW(senderID);
+			let hentai = await Nsfw.hentaiUseLeft(senderID);
+			let porn = await Nsfw.pornUseLeft(senderID);
+			if (tier == -1) api.sendMessage('Bạn đang ở God Mode.\nBạn sẽ không bị giới hạn số lần dùng lệnh NSFW.', threadID, messageID);
+			else api.sendMessage(`Hạng NSFW của bạn là ${tier}.\nSố lần sử dụng ${prefix}porn còn lại: ${porn}.\nSố lần sử dụng ${prefix}hentai còn lại: ${hentai}.`, threadID, messageID);
 			return;
 		}
 
 		//buy nsfw tier
 		if (contentMessage == `${prefix}buynsfw`) {
 			if (__GLOBAL.NSFWBlocked.includes(threadID)) return api.sendMessage("Nhóm này đang bị tắt NSFW!", threadID, messageID);
-			(async () => {
-				let tier = await Nsfw.getNSFW(senderID);
-				if (tier == -1) api.sendMessage('Bạn đang ở God Mode nên sẽ không thể mua.', threadID, messageID);
-				else {
-					let buy = await Nsfw.buyNSFW(senderID);
-					if (buy == false) api.sendMessage('Đã có lỗi xảy ra!', threadID, messageID);
-					else api.sendMessage(buy.toString(), threadID, messageID);
-				}
-			})();
+			let tier = await Nsfw.getNSFW(senderID);
+			if (tier == -1) api.sendMessage('Bạn đang ở God Mode nên sẽ không thể mua.', threadID, messageID);
+			else {
+				let buy = await Nsfw.buyNSFW(senderID);
+				if (buy == false) api.sendMessage('Đã có lỗi xảy ra!', threadID, messageID);
+				else api.sendMessage(buy.toString(), threadID, messageID);
+			}
 			return;
 		}
 
@@ -1638,310 +1624,307 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 		}
 
 		//fishing
-		if (contentMessage.indexOf(`${prefix}fishing`) == 0)
-			return (async () => {
-				var content = contentMessage.slice(prefix.length + 8, contentMessage.length);
-				let inventory = await Fishing.getInventory(senderID);
-				if (!content) {
-					let stats = await Fishing.getStats(senderID);
-					let lastTimeFishing = await Fishing.lastTimeFishing(senderID);
-					let moneydb = await Economy.getMoney(senderID);
-					if (new Date() - new Date(lastTimeFishing) >= 5000) {
-						var roll = Math.floor(Math.random() * 1008);
-						lastTimeFishing = new Date();
-						stats.casts += 1;
-						if (roll <= 400) {
-							var arrayTrash = ["🏐","💾","📎","💩","🦴","🥾","🥾","🌂"];
-							inventory.trash += 1;
-							stats.trash += 1;
-							api.sendMessage(arrayTrash[Math.floor(Math.random() * arrayTrash.length)] + ' | Oh, xung quanh bạn toàn là rác êii', threadID, messageID);
-						}
-						else if (roll > 400 && roll <= 700) {
-							inventory.fish1 += 1;
-							stats.fish1 += 1;
-							api.sendMessage('🐟 | Bạn đã bắt được một con cá cỡ bình thường 😮', threadID, messageID);
-						}
-						else if (roll > 700 && roll <= 900) {
-							inventory.fish2 += 1;
-							stats.fish2 += 1;
-							api.sendMessage('🐠 | Bạn đã bắt được một con cá hiếm 😮', threadID, messageID);
-						}
-						else if (roll > 900 && roll <= 960) {
-							inventory.crabs += 1;
-							stats.crabs += 1;
-							api.sendMessage('🦀 | Bạn đã bắt được một con cua siêu to khổng lồ 😮', threadID, messageID);
-						}
-						else if (roll > 960 && roll <= 1001) {
-							inventory.blowfish += 1;
-							stats.blowfish += 1;
-							api.sendMessage('🐡 | Bạn đã bắt được một con cá nóc *insert meme cá nóc ăn carot .-.*', threadID, messageID);
-						}
-						else if (roll == 1002) {
-							inventory.crocodiles += 1;
-							stats.crocodiles += 1;
-							api.sendMessage('🐊 | Bạn đã bắt được một con cá sấu đẹp trai hơn cả bạn 😮', threadID, messageID);
-						}
-						else if (roll == 1003) {
-							inventory.whales += 1;
-							stats.whales += 1;
-							api.sendMessage('🐋 | Bạn đã bắt được một con cá voi siêu to khổng lồ 😮', threadID, messageID);
-						}
-						else if (roll == 1004) {
-							inventory.dolphins += 1;
-							stats.dolphins += 1;
-							api.sendMessage('🐬 | Damn bro, tại sao bạn lại bắt một con cá heo dễ thương thế kia 😱', threadID, messageID);
-						}
-						else if (roll == 1006) {
-							inventory.squid += 1;
-							stats.squid += 1;
-							api.sendMessage('🦑 | Bạn đã bắt được một con mực 🤤', threadID, messageID);
-						}
-						else if (roll == 1007) {
-							inventory.sharks += 1;
-							stats.sharks += 1;
-							api.sendMessage('🦈 | Bạn đã bắt được một con cá mập nhưng không mập 😲', threadID, messageID);
-						}
-						await Fishing.updateLastTimeFishing(senderID, lastTimeFishing);
-						await Fishing.updateInventory(senderID, inventory);
-						await Fishing.updateStats(senderID, stats);
-						await Economy.subtractMoney(senderID, 2);
+		if (contentMessage.indexOf(`${prefix}fishing`) == 0) {
+			var content = contentMessage.slice(prefix.length + 8, contentMessage.length);
+			let inventory = await Fishing.getInventory(senderID);
+			if (!content) {
+				let stats = await Fishing.getStats(senderID);
+				let lastTimeFishing = await Fishing.lastTimeFishing(senderID);
+				let moneydb = await Economy.getMoney(senderID);
+				if (new Date() - new Date(lastTimeFishing) >= 5000) {
+					var roll = Math.floor(Math.random() * 1008);
+					lastTimeFishing = new Date();
+					stats.casts += 1;
+					if (roll <= 400) {
+						var arrayTrash = ["🏐","💾","📎","💩","🦴","🥾","🥾","🌂"];
+						inventory.trash += 1;
+						stats.trash += 1;
+						api.sendMessage(arrayTrash[Math.floor(Math.random() * arrayTrash.length)] + ' | Oh, xung quanh bạn toàn là rác êii', threadID, messageID);
 					}
-					else if (new Date() - new Date(lastTimeFishing) <= 5000) api.sendMessage('Bạn chỉ được câu cá mỗi 5 giây một lần, vui lòng không spam .-.', threadID, messageID);
-				}
-				else if (content.indexOf('bag') == 0) {
-					var total = inventory.trash + inventory.fish1 * 30 + inventory.fish2 * 100 + inventory.crabs * 250 + inventory.blowfish * 300 + inventory.crocodiles * 500 + inventory.whales * 750 + inventory.dolphins * 750 + inventory.squid * 1000 + inventory.sharks * 1000;
-					api.sendMessage(
-						"===== Inventory Của Bạn =====" +
-						"\n- Số lượng:" +
-						"\n+ Rác | 🗑️: " + inventory.trash +
-						"\n+ Cá cỡ bình thường | 🐟: " + inventory.fish1 +
-						"\n+ Cá hiếm | 🐠: " + inventory.fish2 +
-						"\n+ Cua | 🦀: " + inventory.crabs +
-						"\n+ Cá nóc | 🐡: " + inventory.blowfish +
-						"\n+ Cá sấu | 🐊: " + inventory.crocodiles +
-						"\n+ Cá voi | 🐋: " + inventory.whales +
-						"\n+ Cá heo | 🐬: " + inventory.dolphins +
-						"\n+ Mực | 🦑: " + inventory.squid +
-						"\n+ Cá mập | 🦈: " + inventory.sharks +
-						"\n- Tổng số tiền bạn có thể thu được sau khi bán: " + total + " đô ",
-						threadID, messageID
-					);
-				}
-				else if (content.indexOf('sell') == 0) {
-					var choose = content.split(' ')[1];
-					if (!choose) return api.sendMessage('Chưa nhập thứ cần bán.', threadID, messageID);
-					else if (choose == 'trash' || choose == '1') {
-						var y = inventory.trash;
-						inventory.trash = 0;
-						var money = parseInt(1 * y);
-						api.sendMessage('🎣 | Bạn đã bán ' + y + ' rác và nhận được ' + money + ' đô', threadID, messageID);
+					else if (roll > 400 && roll <= 700) {
+						inventory.fish1 += 1;
+						stats.fish1 += 1;
+						api.sendMessage('🐟 | Bạn đã bắt được một con cá cỡ bình thường 😮', threadID, messageID);
 					}
-					else if (choose == 'common' || choose == '2') {
-						var y = inventory.fish1;
-						inventory.fish1 = 0;
-						var money = parseInt(30 * y);
-						api.sendMessage('🎣 | Bạn đã bán ' + y + ' con cá bình thường và nhận được ' + money + ' đô', threadID, messageID);
+					else if (roll > 700 && roll <= 900) {
+						inventory.fish2 += 1;
+						stats.fish2 += 1;
+						api.sendMessage('🐠 | Bạn đã bắt được một con cá hiếm 😮', threadID, messageID);
 					}
-					else if (choose == 'rare' || choose == '3') {
-						var y = inventory.fish2;
-						inventory.fish2 = 0;
-						var money = parseInt(100 * y);
-						api.sendMessage('🎣 | Bạn đã bán ' + y + ' con cá hiếm và nhận được ' + money + ' đô', threadID, messageID);
+					else if (roll > 900 && roll <= 960) {
+						inventory.crabs += 1;
+						stats.crabs += 1;
+						api.sendMessage('🦀 | Bạn đã bắt được một con cua siêu to khổng lồ 😮', threadID, messageID);
 					}
-					else if (choose == 'crabs' || choose == '4') {
-						var y = inventory.crabs;
-						inventory.crabs = 0;
-						var money = parseInt(250 * y);
-						api.sendMessage('🎣 | Bạn đã bán ' + y + ' con cua và nhận được ' + money + ' đô', threadID, messageID);
+					else if (roll > 960 && roll <= 1001) {
+						inventory.blowfish += 1;
+						stats.blowfish += 1;
+						api.sendMessage('🐡 | Bạn đã bắt được một con cá nóc *insert meme cá nóc ăn carot .-.*', threadID, messageID);
 					}
-					else if (choose == 'blowfish' || choose == '8') {
-						var y = inventory.blowfish;
-						inventory.blowfish = 0;
-						var money = parseInt(300 * y);
-						api.sendMessage('🎣 | Bạn đã bán ' + y + ' con cá nóc và nhận được ' + money + ' đô', threadID, messageID);
+					else if (roll == 1002) {
+						inventory.crocodiles += 1;
+						stats.crocodiles += 1;
+						api.sendMessage('🐊 | Bạn đã bắt được một con cá sấu đẹp trai hơn cả bạn 😮', threadID, messageID);
 					}
-					else if (choose == 'crocodiles' || choose == '5') {
-						var y = inventory.crocodiles;
-						inventory.crocodiles = 0;
-						var money = parseInt(500 * y);
-						api.sendMessage('🎣 | Bạn đã bán ' + y + ' con cá sấu và nhận được ' + money + ' đô', threadID, messageID);
+					else if (roll == 1003) {
+						inventory.whales += 1;
+						stats.whales += 1;
+						api.sendMessage('🐋 | Bạn đã bắt được một con cá voi siêu to khổng lồ 😮', threadID, messageID);
 					}
-					else if (choose == 'whales' || choose == '6') {
-						var y = inventory.whales;
-						inventory.whales = 0;
-						var money = parseInt(750 * y);
-						api.sendMessage('🎣 | Bạn đã bán ' + y + ' con cá voi và nhận được ' + money + ' đô', threadID, messageID);
+					else if (roll == 1004) {
+						inventory.dolphins += 1;
+						stats.dolphins += 1;
+						api.sendMessage('🐬 | Damn bro, tại sao bạn lại bắt một con cá heo dễ thương thế kia 😱', threadID, messageID);
 					}
-					else if (choose == 'dolphins' || choose == '7') {
-						var y = inventory.dolphins;
-						inventory.dolphins = 0;
-						var money = parseInt(750 * y);
-						api.sendMessage('🎣 | Bạn đã bán ' + y + ' con cá heo và nhận được ' + money + ' đô', threadID, messageID);
+					else if (roll == 1006) {
+						inventory.squid += 1;
+						stats.squid += 1;
+						api.sendMessage('🦑 | Bạn đã bắt được một con mực 🤤', threadID, messageID);
 					}
-					else if (choose == 'squid' || choose == '9') {
-						var y = inventory.squid;
-						inventory.squid = 0;
-						var money = parseInt(1000 * y);
-						api.sendMessage('🎣 | Bạn đã bán ' + y + ' con mực và nhận được ' + money + ' đô', threadID, messageID);
+					else if (roll == 1007) {
+						inventory.sharks += 1;
+						stats.sharks += 1;
+						api.sendMessage('🦈 | Bạn đã bắt được một con cá mập nhưng không mập 😲', threadID, messageID);
 					}
-					else if (choose == 'sharks' || choose == '10') {
-						var y = inventory.sharks;
-						inventory.sharks = 0;
-						var money = parseInt(1000 * y);
-						api.sendMessage('🎣 | Bạn đã bán ' + y + ' con cá mập và nhận được ' + money + ' đô', threadID, messageID);
-					}
-					else if (choose == 'all') {
-						var money = parseInt(inventory.trash + inventory.fish1 * 30 + inventory.fish2 * 100 + inventory.crabs * 250 + inventory.blowfish * 300 + inventory.crocodiles * 500 + inventory.whales * 750 + inventory.dolphins * 750 + inventory.squid * 1000 + inventory.sharks * 1000);
-						api.sendMessage(`🎣 | Bạn sẽ nhận về được ${money} đô sau khi bán toàn bộ hải sản có trong túi. Bạn muỗn tiếp tục chứ? \n ==== Like tin nhắn này để đồng ý giao dịch hoặc dislike để huỷ giao dịch ====`, threadID, (err, info) => {
-							if (err) throw err;
-							__GLOBAL.confirm.push({
-								type: "fishing_sellAll",
-								messageID: info.messageID,
-								target: parseInt(threadID),
-								author: senderID
-							});
-						}, messageID);
-					}
+					await Fishing.updateLastTimeFishing(senderID, lastTimeFishing);
 					await Fishing.updateInventory(senderID, inventory);
-					await Economy.addMoney(senderID, money);
+					await Fishing.updateStats(senderID, stats);
+					await Economy.subtractMoney(senderID, 2);
 				}
-				else if (content.indexOf("list") == 0)
-					return api.sendMessage(
-						"===== Danh sách tiền của mọi loại cá =====" +
-						"\n1/ Rác | 🗑️: 1 đô" +
-						"\n2/ Cá cỡ bình thường | 🐟: 30 đô" +
-						"\n3/ Cá hiếm | 🐠: 100 đô" +
-						"\n4/ Cua | 🦀: 250 đô" +
-						"\n5/ Cá nóc | 🐡: 300 đô" +
-						"\n6/ Cá sấu | 🐊: 500 đô" +
-						"\n7/ Cá voi | 🐋: 750 đô" +
-						"\n8/ Cá heo | 🐬: 750 đô" +
-						"\n9/ Mực | 🦑: 1000 đô" +
-						"\n10/ Cá mập | 🦈: 1000 đô",
-						threadID, messageID
-					);
-				else if (content.indexOf("steal") == 0) {
-					let cooldown = 1800000;
-					Fishing.getStealFishingTime(senderID).then(async function(lastStealFishing) {
-						if (lastStealFishing !== null && cooldown - (Date.now() - lastStealFishing) > 0) {
-							let time = ms(cooldown - (Date.now() - lastStealFishing));
-							return api.sendMessage("Bạn vừa ăn trộm, để tránh bị bay hết cá vui lòng quay lại sau: " + time.minutes + " phút " + time.seconds + " giây ", threadID, messageID);
-						}
-						else {
-							let all = await User.getUsers(['name', 'uid']);
-							let victim = all[Math.floor(Math.random() * all.length)].uid;
-							let inventoryStealer = await Fishing.getInventory(senderID);
-							let inventoryVictim = await Fishing.getInventory(victim);
-							let nameVictim = await User.getName(victim);
-							let nameStealer = await User.getName(senderID);
-							let route = Math.floor(Math.random() * 3000);
-							let swap = Math.floor(Math.random() * 51);
-							if (victim == api.getCurrentUserID() && senderID == victim) return api.sendMessage("Cần lao vi tiên thủ\nNăng cán dĩ đắc thực\nVô vi thực đầu buồi\nThực cứt thế cho nhanh", threadID, messageID);
-							else if (senderID != victim && victim != api.getCurrentUserID()) {
-								if (swap >= 0 && swap <= 50) {
-									if (route == 3000) {
-										if (inventoryVictim.sharks == 0) return api.sendMessage("Bạn định trộm 1 con cá mập nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
-										else {
-											inventoryVictim.sharks -= 1;
-											inventoryStealer.sharks += 1;
-											api.sendMessage("Bạn vừa trộm được 1 baby sharks du du du du =))", threadID, messageID);
-										}
+				else if (new Date() - new Date(lastTimeFishing) <= 5000) api.sendMessage('Bạn chỉ được câu cá mỗi 5 giây một lần, vui lòng không spam .-.', threadID, messageID);
+			}
+			else if (content.indexOf('bag') == 0) {
+				var total = inventory.trash + inventory.fish1 * 30 + inventory.fish2 * 100 + inventory.crabs * 250 + inventory.blowfish * 300 + inventory.crocodiles * 500 + inventory.whales * 750 + inventory.dolphins * 750 + inventory.squid * 1000 + inventory.sharks * 1000;
+				api.sendMessage(
+					"===== Inventory Của Bạn =====" +
+					"\n- Số lượng:" +
+					"\n+ Rác | 🗑️: " + inventory.trash +
+					"\n+ Cá cỡ bình thường | 🐟: " + inventory.fish1 +
+					"\n+ Cá hiếm | 🐠: " + inventory.fish2 +
+					"\n+ Cua | 🦀: " + inventory.crabs +
+					"\n+ Cá nóc | 🐡: " + inventory.blowfish +
+					"\n+ Cá sấu | 🐊: " + inventory.crocodiles +
+					"\n+ Cá voi | 🐋: " + inventory.whales +
+					"\n+ Cá heo | 🐬: " + inventory.dolphins +
+					"\n+ Mực | 🦑: " + inventory.squid +
+					"\n+ Cá mập | 🦈: " + inventory.sharks +
+					"\n- Tổng số tiền bạn có thể thu được sau khi bán: " + total + " đô ",
+					threadID, messageID
+				);
+			}
+			else if (content.indexOf('sell') == 0) {
+				var choose = content.split(' ')[1];
+				if (!choose) return api.sendMessage('Chưa nhập thứ cần bán.', threadID, messageID);
+				else if (choose == 'trash' || choose == '1') {
+					var y = inventory.trash;
+					inventory.trash = 0;
+					var money = parseInt(1 * y);
+					api.sendMessage('🎣 | Bạn đã bán ' + y + ' rác và nhận được ' + money + ' đô', threadID, messageID);
+				}
+				else if (choose == 'common' || choose == '2') {
+					var y = inventory.fish1;
+					inventory.fish1 = 0;
+					var money = parseInt(30 * y);
+					api.sendMessage('🎣 | Bạn đã bán ' + y + ' con cá bình thường và nhận được ' + money + ' đô', threadID, messageID);
+				}
+				else if (choose == 'rare' || choose == '3') {
+					var y = inventory.fish2;
+					inventory.fish2 = 0;
+					var money = parseInt(100 * y);
+					api.sendMessage('🎣 | Bạn đã bán ' + y + ' con cá hiếm và nhận được ' + money + ' đô', threadID, messageID);
+				}
+				else if (choose == 'crabs' || choose == '4') {
+					var y = inventory.crabs;
+					inventory.crabs = 0;
+					var money = parseInt(250 * y);
+					api.sendMessage('🎣 | Bạn đã bán ' + y + ' con cua và nhận được ' + money + ' đô', threadID, messageID);
+				}
+				else if (choose == 'blowfish' || choose == '8') {
+					var y = inventory.blowfish;
+					inventory.blowfish = 0;
+					var money = parseInt(300 * y);
+					api.sendMessage('🎣 | Bạn đã bán ' + y + ' con cá nóc và nhận được ' + money + ' đô', threadID, messageID);
+				}
+				else if (choose == 'crocodiles' || choose == '5') {
+					var y = inventory.crocodiles;
+					inventory.crocodiles = 0;
+					var money = parseInt(500 * y);
+					api.sendMessage('🎣 | Bạn đã bán ' + y + ' con cá sấu và nhận được ' + money + ' đô', threadID, messageID);
+				}
+				else if (choose == 'whales' || choose == '6') {
+					var y = inventory.whales;
+					inventory.whales = 0;
+					var money = parseInt(750 * y);
+					api.sendMessage('🎣 | Bạn đã bán ' + y + ' con cá voi và nhận được ' + money + ' đô', threadID, messageID);
+				}
+				else if (choose == 'dolphins' || choose == '7') {
+					var y = inventory.dolphins;
+					inventory.dolphins = 0;
+					var money = parseInt(750 * y);
+					api.sendMessage('🎣 | Bạn đã bán ' + y + ' con cá heo và nhận được ' + money + ' đô', threadID, messageID);
+				}
+				else if (choose == 'squid' || choose == '9') {
+					var y = inventory.squid;
+					inventory.squid = 0;
+					var money = parseInt(1000 * y);
+					api.sendMessage('🎣 | Bạn đã bán ' + y + ' con mực và nhận được ' + money + ' đô', threadID, messageID);
+				}
+				else if (choose == 'sharks' || choose == '10') {
+					var y = inventory.sharks;
+					inventory.sharks = 0;
+					var money = parseInt(1000 * y);
+					api.sendMessage('🎣 | Bạn đã bán ' + y + ' con cá mập và nhận được ' + money + ' đô', threadID, messageID);
+				}
+				else if (choose == 'all') {
+					var money = parseInt(inventory.trash + inventory.fish1 * 30 + inventory.fish2 * 100 + inventory.crabs * 250 + inventory.blowfish * 300 + inventory.crocodiles * 500 + inventory.whales * 750 + inventory.dolphins * 750 + inventory.squid * 1000 + inventory.sharks * 1000);
+					api.sendMessage(`🎣 | Bạn sẽ nhận về được ${money} đô sau khi bán toàn bộ hải sản có trong túi. Bạn muỗn tiếp tục chứ? \n ==== Like tin nhắn này để đồng ý giao dịch hoặc dislike để huỷ giao dịch ====`, threadID, (err, info) => {
+						if (err) throw err;
+						__GLOBAL.confirm.push({
+							type: "fishing_sellAll",
+							messageID: info.messageID,
+							target: parseInt(threadID),
+							author: senderID
+						});
+					}, messageID);
+				}
+				await Fishing.updateInventory(senderID, inventory);
+				await Economy.addMoney(senderID, money);
+			}
+			else if (content.indexOf("list") == 0)
+				return api.sendMessage(
+					"===== Danh sách tiền của mọi loại cá =====" +
+					"\n1/ Rác | 🗑️: 1 đô" +
+					"\n2/ Cá cỡ bình thường | 🐟: 30 đô" +
+					"\n3/ Cá hiếm | 🐠: 100 đô" +
+					"\n4/ Cua | 🦀: 250 đô" +
+					"\n5/ Cá nóc | 🐡: 300 đô" +
+					"\n6/ Cá sấu | 🐊: 500 đô" +
+					"\n7/ Cá voi | 🐋: 750 đô" +
+					"\n8/ Cá heo | 🐬: 750 đô" +
+					"\n9/ Mực | 🦑: 1000 đô" +
+					"\n10/ Cá mập | 🦈: 1000 đô",
+					threadID, messageID
+				);
+			else if (content.indexOf("steal") == 0) {
+				let cooldown = 1800000;
+				Fishing.getStealFishingTime(senderID).then(async function(lastStealFishing) {
+					if (lastStealFishing !== null && cooldown - (Date.now() - lastStealFishing) > 0) {
+						let time = ms(cooldown - (Date.now() - lastStealFishing));
+						return api.sendMessage("Bạn vừa ăn trộm, để tránh bị bay hết cá vui lòng quay lại sau: " + time.minutes + " phút " + time.seconds + " giây ", threadID, messageID);
+					}
+					else {
+						let all = await User.getUsers(['uid']);
+						let victim = all[Math.floor(Math.random() * all.length)].uid;
+						let inventoryStealer = await Fishing.getInventory(senderID);
+						let inventoryVictim = await Fishing.getInventory(victim);
+						let route = Math.floor(Math.random() * 3000);
+						let swap = Math.floor(Math.random() * 51);
+						if (victim == api.getCurrentUserID() || senderID == victim) return api.sendMessage("Cần lao vi tiên thủ\nNăng cán dĩ đắc thực\nVô vi thực đầu buồi\nThực cứt thế cho nhanh", threadID, messageID);
+						else if (senderID != victim && victim != api.getCurrentUserID()) {
+							if (swap >= 0 && swap <= 50) {
+								if (route == 3000) {
+									if (inventoryVictim.sharks == 0) return api.sendMessage("Bạn định trộm 1 con cá mập nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
+									else {
+										inventoryVictim.sharks -= 1;
+										inventoryStealer.sharks += 1;
+										api.sendMessage("Bạn vừa trộm được 1 baby sharks du du du du =))", threadID, messageID);
 									}
-									else if (route == 2999) {
-										if (inventoryVictim.squid == 0) return api.sendMessage("Bạn định trộm 1 con mực nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
-										else {
-											inventoryVictim.squid -= 1;
-											inventoryStealer.squid += 1;
-											api.sendMessage("Bạn vừa trộm được 1 con mực siu to khổng nồ", threadID, messageID);
-										}
-									}
-									else if (route == 2998) {
-										if (inventoryVictim.dolphins == 0) return api.sendMessage("Bạn định trộm 1 con cá heo nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
-										else {
-											inventoryVictim.dolphins -= 1;
-											inventoryStealer.dolphins += 1;
-											api.sendMessage("Bạn vừa trộm được 1 bé cá heo siu cute", threadID, messageID);
-										}
-									}
-									else if (route == 2997) {
-										if (inventoryVictim.whales == 0) return api.sendMessage("Bạn định trộm 1 con cá voi nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
-										else {
-											inventoryVictim.whales -= 1;
-											inventoryStealer.whales += 1;
-											api.sendMessage("Bạn vừa trộm được 1 con cá voi to chà bá", threadID, messageID);
-										}
-									}
-									else if (route == 2996) {
-										if (inventoryVictim.crocodiles == 0) return api.sendMessage("Bạn định trộm 1 con cá sấu nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
-										else {
-											inventoryVictim.crocodiles -= 1;
-											inventoryStealer.crocodiles += 1;
-											api.sendMessage("Bạn vừa trộm được 1 con cá sấu nhưng không xấu :v", threadID, messageID);
-										}
-									}
-									else if (route == 2995) {
-										if (inventoryVictim.blowfish == 0) return api.sendMessage("Bạn định trộm 1 con cá nóc nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
-										else {ầ
-											inventoryVictim.blowfish -= 1;
-											inventoryStealer.blowfish += 1;
-											api.sendMessage("Bạn vừa trộm được 1 con cá nóc :v", threadID, messageID);
-										}
-									}
-									else if (route == 2994) {
-										if (inventoryVictim.crabs == 0) return api.sendMessage("Bạn định trộm 1 con cá cua nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
-										else {
-											inventoryVictim.crabs -= 1;
-											inventoryStealer.crabs += 1;
-											api.sendMessage("Bạn vừa trộm được 1 con cua", threadID, messageID);
-										}
-									}
-									else if (route >= 2000 && route < 2994) {
-										if (inventoryVictim.fish2 == 0) return api.sendMessage("Bạn định trộm 1 con cá hiếm nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
-										else {
-											inventoryVictim.fish2 -= 1;
-											inventoryStealer.fish2 += 1;
-											api.sendMessage("Bạn vừa trộm được 1 con cá hiếm", threadID, messageID);
-										}
-									}
-									else if (route >= 1000 && route < 2000) {
-										if (inventoryVictim.fish1 == 0) return api.sendMessage("Bạn định trộm 1 con cá bé nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
-										else {
-											inventoryVictim.fish1 -= 1;
-											inventoryStealer.fish1 += 1;
-											api.sendMessage("Bạn vừa trộm được 1 con cá bé", threadID, messageID);
-										}
-									}
-									else if (route >= 0 && route < 1000) {
-										if (inventoryVictim.trash == 0) return api.sendMessage("Bạn định trộm 1 cục rác (?) nhưng có vẻ là nạn nhân chưa câu được.", threadID, messageID);
-										else {
-											inventoryVictim.trash -= 1;
-											inventoryStealer.trash += 1;
-											api.sendMessage("Bạn vừa trộm được 1 cục rác to tướng :v", threadID, messageID);
-										}
-									}
-									await Fishing.updateInventory(victim, inventoryVictim);
-									await Fishing.updateInventory(senderID, inventoryStealer);
 								}
-								else if (swap > 50) {
-									inventoryStealer.trash = 0;
-									inventoryStealer.fish1 = 0;
-									inventoryStealer.fish2 = 0;
-									inventoryStealer.crabs = 0;
-									inventoryStealer.crocodiles = 0;
-									inventoryStealer.whales = 0;
-									inventoryStealer.dolphins = 0;
-									inventoryStealer.blowfish = 0;
-									inventoryStealer.squid = 0;
-									inventoryStealer.sharks = 0;
-									api.sendMessage("Đi trộm không để ý, gặp bảo vệ, bạn bị bay hết cá trong túi rồi xD", threadID, messageID);
-									await Fishing.updateInventory(senderID, inventoryStealer);
+								else if (route == 2999) {
+									if (inventoryVictim.squid == 0) return api.sendMessage("Bạn định trộm 1 con mực nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
+									else {
+										inventoryVictim.squid -= 1;
+										inventoryStealer.squid += 1;
+										api.sendMessage("Bạn vừa trộm được 1 con mực siu to khổng nồ", threadID, messageID);
+									}
 								}
+								else if (route == 2998) {
+									if (inventoryVictim.dolphins == 0) return api.sendMessage("Bạn định trộm 1 con cá heo nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
+									else {
+										inventoryVictim.dolphins -= 1;
+										inventoryStealer.dolphins += 1;
+										api.sendMessage("Bạn vừa trộm được 1 bé cá heo siu cute", threadID, messageID);
+									}
+								}
+								else if (route == 2997) {
+									if (inventoryVictim.whales == 0) return api.sendMessage("Bạn định trộm 1 con cá voi nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
+									else {
+										inventoryVictim.whales -= 1;
+										inventoryStealer.whales += 1;
+										api.sendMessage("Bạn vừa trộm được 1 con cá voi to chà bá", threadID, messageID);
+									}
+								}
+								else if (route == 2996) {
+									if (inventoryVictim.crocodiles == 0) return api.sendMessage("Bạn định trộm 1 con cá sấu nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
+									else {
+										inventoryVictim.crocodiles -= 1;
+										inventoryStealer.crocodiles += 1;
+										api.sendMessage("Bạn vừa trộm được 1 con cá sấu nhưng không xấu :v", threadID, messageID);
+									}
+								}
+								else if (route == 2995) {
+									if (inventoryVictim.blowfish == 0) return api.sendMessage("Bạn định trộm 1 con cá nóc nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
+									else {
+										inventoryVictim.blowfish -= 1;
+										inventoryStealer.blowfish += 1;
+										api.sendMessage("Bạn vừa trộm được 1 con cá nóc :v", threadID, messageID);
+									}
+								}
+								else if (route == 2994) {
+									if (inventoryVictim.crabs == 0) return api.sendMessage("Bạn định trộm 1 con cá cua nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
+									else {
+										inventoryVictim.crabs -= 1;
+										inventoryStealer.crabs += 1;
+										api.sendMessage("Bạn vừa trộm được 1 con cua", threadID, messageID);
+									}
+								}
+								else if (route >= 2000 && route < 2994) {
+									if (inventoryVictim.fish2 == 0) return api.sendMessage("Bạn định trộm 1 con cá hiếm nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
+									else {
+										inventoryVictim.fish2 -= 1;
+										inventoryStealer.fish2 += 1;
+										api.sendMessage("Bạn vừa trộm được 1 con cá hiếm", threadID, messageID);
+									}
+								}
+								else if (route >= 1000 && route < 2000) {
+									if (inventoryVictim.fish1 == 0) return api.sendMessage("Bạn định trộm 1 con cá bé nhưng có vẻ là nạn nhân chưa bắt được.", threadID, messageID);
+									else {
+										inventoryVictim.fish1 -= 1;
+										inventoryStealer.fish1 += 1;
+										api.sendMessage("Bạn vừa trộm được 1 con cá bé", threadID, messageID);
+									}
+								}
+								else if (route >= 0 && route < 1000) {
+									if (inventoryVictim.trash == 0) return api.sendMessage("Bạn định trộm 1 cục rác (?) nhưng có vẻ là nạn nhân chưa câu được.", threadID, messageID);
+									else {
+										inventoryVictim.trash -= 1;
+										inventoryStealer.trash += 1;
+										api.sendMessage("Bạn vừa trộm được 1 cục rác to tướng :v", threadID, messageID);
+									}
+								}
+								await Fishing.updateInventory(victim, inventoryVictim);
+								await Fishing.updateInventory(senderID, inventoryStealer);
+							}
+							else if (swap > 50) {
+								inventoryStealer.trash = 0;
+								inventoryStealer.fish1 = 0;
+								inventoryStealer.fish2 = 0;
+								inventoryStealer.crabs = 0;
+								inventoryStealer.crocodiles = 0;
+								inventoryStealer.whales = 0;
+								inventoryStealer.dolphins = 0;
+								inventoryStealer.blowfish = 0;
+								inventoryStealer.squid = 0;
+								inventoryStealer.sharks = 0;
+								api.sendMessage("Đi trộm không để ý, gặp bảo vệ, bạn bị bay hết cá trong túi rồi xD", threadID, messageID);
+								await Fishing.updateInventory(senderID, inventoryStealer);
 							}
 						}
-						Fishing.updateStealFishingTime(senderID, Date.now());
-					});
-				}
-			})();
+					}
+					Fishing.updateStealFishingTime(senderID, Date.now());
+				});
+			}
+		}
 		
 
 		/* ==================== System Check ==================== */

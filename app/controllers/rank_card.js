@@ -1,3 +1,9 @@
+/*
+* 
+* Remake from Canvacord
+* 
+*/
+
 const fs = require("fs-extra");
 const axios = require("axios");
 const path = require("path");
