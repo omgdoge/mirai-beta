@@ -960,7 +960,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 				let rank = all.findIndex(item => item.uid == senderID) + 1;
 				let name = await User.getName(senderID);
 				if (rank == 0) api.sendMessage('Bạn hiện chưa có trong database nên không thể xem rank, hãy thử lại sau 5 giây.', threadID, messageID);
-				else Rank.getPoint(senderID).then(point => createCard({ id: senderID, name, rank, ...point })).then(path => api.sendMessage({attachment: fs.createReadStream(path)}, threadID, () => fs.unlinkSync(path), messageID));
+				else Rank.getInfo(senderID).then(point => createCard({ id: senderID, name, rank, ...point })).then(path => api.sendMessage({attachment: fs.createReadStream(path)}, threadID, () => fs.unlinkSync(path), messageID));
 			}
 			else {
 				let mentions = Object.keys(event.mentions);
@@ -968,7 +968,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 					let name = event.mentions[i].replace('@', '');
 					let rank = all.findIndex(item => item.uid == i) + 1;
 					if (rank == 0) api.sendMessage(name + ' chưa có trong database nên không thể xem rank.', threadID, messageID);
-					else Rank.getPoint(i).then(point => createCard({ id: parseInt(i), name, rank, ...point })).then(path => api.sendMessage({attachment: fs.createReadStream(path)}, threadID, () => fs.unlinkSync(path), messageID));
+					else Rank.getInfo(i).then(point => createCard({ id: parseInt(i), name, rank, ...point })).then(path => api.sendMessage({attachment: fs.createReadStream(path)}, threadID, () => fs.unlinkSync(path), messageID));
 				});
 			}
 			return;

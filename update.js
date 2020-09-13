@@ -54,7 +54,7 @@ async function clean() {
 function clone() {
 	console.log('-> Đang tải bản cập nhật mới');
 	return new Promise(function(resolve, reject) {
-		git().clone('https://github.com/roxtigger2003/mirai', './tmp/newVersion', [], result => {
+		git().clone('https://github.com/roxtigger2003/mirai-beta', './tmp/newVersion', [], result => {
 			if (result != null) reject('[!] Không thể tải xuống bản cập nhật [!]');
 			resolve();
 		})
@@ -90,7 +90,7 @@ function modules() {
 }
 
 async function finish() {
-	let checkDB = (await axios.get('https://raw.githubusercontent.com/roxtigger2003/mirai/master/package.json')).newDB;
+	let checkDB = (await axios.get('https://raw.githubusercontent.com/roxtigger2003/mirai-beta/master/package.json')).newDB;
 	if (checkDB) console.log('>> Database cần phải thay đổi, bạn sẽ không thể sử dụng được database cũ <<');
 	else {
 		console.log('>> Database không cần phải thay đổi, bạn có thể tiếp tục sử dụng database cũ <<');
