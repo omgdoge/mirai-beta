@@ -9,6 +9,7 @@ module.exports = function({ models, api }) {
 			let [ thread, created ] = await Thread.findOrCreate({ where: { threadID }, defaults: { name } });
 			if (created) return logger(threadID, 'New Thread');
 		}
+		else return;
 	}
 
 	async function getInfo(threadID) {

@@ -15,6 +15,7 @@ module.exports = function({ models, api }) {
 			}
 			else return false;
 		}
+		else return;
 	}
 
 	async function getInfo(id) {

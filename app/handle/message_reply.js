@@ -21,6 +21,7 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 		const cmd = require("node-cmd");
 		const axios = require('axios');
 		const { reply } = __GLOBAL;
+		const restart = (process.env.API_SERVER_EXTERNAL == 'https://api.glitch.com') ? "refresh" : "pm2 restart 0";
 		if (__GLOBAL.threadBlocked.indexOf(event.threadID) != -1) return;
 		const { senderID, threadID, body, messageID } = event;
 		if (reply.length != 0) {
@@ -58,7 +59,7 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 						users.forEach(i => {
 							if (config.admins.includes(i.uid)) admins += `\n- ${i.name}`;
 						})
-						api.sendMessage(`Admins hiện tại của bot là: ${admins}\n=== Để đổi bạn hãy reply đoạn tin nhắn này với uid (hoặc uid1_uid2_...) bạn muốn đổi thành ===`, threadID, (err, info) => {
+						api.sendMessage(`Admins hiện tại của bot là:${admins}\n=== Để đổi bạn hãy reply đoạn tin nhắn này với uid (hoặc uid1_uid2_...) bạn muốn đổi thành ===`, threadID, (err, info) => {
 							if (err) throw err;
 							__GLOBAL.reply.push({
 								type: "admin_setAdmin",
@@ -157,7 +158,7 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 							});
 						});
 					}
-					else if (body == '13') api.sendMessage(`Tiến hành áp dụng thay đổi, vui lòng đợi một chút để bot đồng bộ!`, threadID, () => cmd.run("pm2 restart 0"));
+					else if (body == '13') api.sendMessage(`Tiến hành áp dụng thay đổi, vui lòng đợi một chút để bot đồng bộ!`, threadID, () => cmd.run(restart));
 					else {
 						let array = ['Hình như bạn đang chơi đồ?', 'Đồ ngon quá à bạn?', 'Bú gì ngon vậy?'];
 						api.sendMessage(array[Math.floor(Math.random() * array.length)], threadID);
