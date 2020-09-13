@@ -5,12 +5,12 @@ module.exports = function({ sequelize, Sequelize }) {
 			primaryKey: true,
 			autoIncrement: true
 		},
+		name: {
+			type: Sequelize.STRING
+		},
 		threadID: {
 			type: Sequelize.BIGINT,
 			unique: true
-		},
-		name: {
-			type: Sequelize.STRING
 		},
 		block: {
 			type: Sequelize.BOOLEAN,

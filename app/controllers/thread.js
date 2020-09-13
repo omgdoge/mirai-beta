@@ -52,6 +52,7 @@ module.exports = function({ models, api }) {
 
 	async function unban(threadID, block = false) {
 		try {
+			await createThread(threadID);
 			(await Thread.findOne({ where: { threadID } })).update({ block });
 			return true;
 		}

@@ -14,7 +14,7 @@ module.exports = function({ models, api }) {
 			return true;
 		}
 		catch (err) {
-			logger(error, 2);
+			logger(err, 2);
 			return false;
 		}
 	}
@@ -31,7 +31,7 @@ module.exports = function({ models, api }) {
 			return true;
 		}
 		catch (err) {
-			logger(error, 2);
+			logger(err, 2);
 			return false;
 		}
 	}
@@ -49,7 +49,7 @@ module.exports = function({ models, api }) {
 			return true;
 		}
 		catch (err) {
-			logger(error, 2);
+			logger(err, 2);
 			return false;
 		}
 	}
@@ -61,7 +61,7 @@ module.exports = function({ models, api }) {
 			return true;
 		}
 		catch (err) {
-			logger(error, 2);
+			logger(err, 2);
 			return false;
 		}
 	}
@@ -72,7 +72,7 @@ module.exports = function({ models, api }) {
 			return true;
 		}
 		catch (err) {
-			logger(error, 2);
+			logger(err, 2);
 			return false;
 		}
 	}	
@@ -89,7 +89,7 @@ module.exports = function({ models, api }) {
 			return true;
 		}
 		catch (err) {
-			logger(error, 2);
+			logger(err, 2);
 			return false;
 		}
 	}

@@ -372,6 +372,23 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 					});
 				}
 			}
+			else if (content.indexOf("createUser") == 0) {
+				const mentions = Object.keys(event.mentions);
+				if (mentions.length == 0) {
+					if (isNaN(arg)) return api.sendMessage("Không phải là ID.", threadID, messageID);
+					let success = await User.createUser(arg);
+					let name = await User.getName(arg);
+					return (success) ? api.sendMessage("Đã thêm " + name + " vào database.", threadID, messageID) : api.sendMessage(name + " đã có sẵn trong database.", threadID, messageID);
+				}
+				else {
+					for (let i of mentions) {
+						let success = await User.createUser(i);
+						let name = await User.getName(i);
+						(success) ? api.sendMessage("Đã thêm " + name + " vào database.", threadID, messageID) : api.sendMessage(name + " đã có sẵn trong database.", threadID, messageID);
+					}
+					return;
+				}	
+			}
 			else if (content.indexOf("addUser") == 0) return api.addUserToGroup(arg, threadID);
 			else if (content.indexOf("restart") == 0) return api.sendMessage(`Hệ thống restart khẩn ngay bây giờ!`, threadID, () => require("node-cmd").run("pm2 restart 0"), messageID);
 			else return api.sendMessage(`Lệnh không tồn tại!`, threadID, messageID);
