@@ -747,7 +747,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 				let shortout = content.slice(narrow + 4, content.length);
 				if (shortin == shortout) return api.sendMessage('Input và output giống nhau', threadID, messageID);
 				if (!shortin) return api.sendMessage("Bạn chưa nhập input.", threadID, messageID);
-				if (!shortout) return api.sendMessage("Bạn chưa nhập output.", threadID, messageID);
+				if (!shortout) return api.sendMessage("Bạn chưa nhập output.", threadID, messageID);
 				return fs.readFile(__dirname + "/src/shortcut.json", "utf-8", (err, data) => {
 					if (err) throw err;
 					var oldData = JSON.parse(data);
@@ -1011,10 +1011,10 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 			return;
 		}
 
-		//dịch ngôn ngữ
+		//dịch ngôn ngữ
 		if (contentMessage.indexOf(`${prefix}trans`) == 0) {
 			var content = contentMessage.slice(prefix.length + 6, contentMessage.length);
-			if (content.length == 0 && event.type != "message_reply") return api.sendMessage(`Bạn chưa nhập thông tin, vui lòng đọc ${prefix}help để biết thêm chi tiết!`, threadID,messageID);
+			if (content.length == 0 && event.type != "message_reply") return api.sendMessage(`Bạn chưa nhập thông tin, vui lòng đọc ${prefix}help để biết thêm chi tiết!`, threadID,messageID);
 			var translateThis = content.slice(0, content.indexOf(" ->"));
 			var lang = content.substring(content.indexOf(" -> ") + 4);
 			if (event.type == "message_reply") {
@@ -1030,7 +1030,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 				if (err) return api.sendMessage("Đã có lỗi xảy ra!", threadID, messageID)
 				var retrieve = JSON.parse(body);
 				var fromLang = retrieve[0][0][8][0][0][1].split("_")[0];
-				api.sendMessage(`Bản dịch: ${retrieve[0][0][0]}\n - được dịch từ ${fromLang} sang ${lang}`, threadID, messageID);
+				api.sendMessage(`Bản dịch: ${retrieve[0][0][0]}\n - được dịch từ ${fromLang} sang ${lang}`, threadID, messageID);
 			});
 		}
 
@@ -1076,7 +1076,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 		//ping
 		if (contentMessage == `${prefix}ping`)
 			return api.getThreadInfo(threadID, (err, info) => {
-				if (err) return api.sendMessage('Đã có lỗi xảy ra!.', threadID, messageID);
+				if (err) return api.sendMessage('Đã có lỗi xảy ra!.', threadID, messageID);
 				var ids = info.participantIDs;
 				ids.splice(ids.indexOf(api.getCurrentUserID()), 1);
 				var body = '@everyone', mentions = [];

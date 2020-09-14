@@ -59,7 +59,7 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 						users.forEach(i => {
 							if (config.admins.includes(i.uid)) admins += `\n- ${i.name}`;
 						})
-						api.sendMessage(`Admins hiện tại của bot là: ${admins}\n=== Để đổi bạn hãy reply đoạn tin nhắn này với uid (hoặc uid1_uid2_...) bạn muốn đổi thành ===`, threadID, (err, info) => {
+						api.sendMessage(`Admins hiện tại của bot là:${admins}\n=== Để đổi bạn hãy reply đoạn tin nhắn này với uid (hoặc uid1_uid2_...) bạn muốn đổi thành ===`, threadID, (err, info) => {
 							if (err) throw err;
 							__GLOBAL.reply.push({
 								type: "admin_setAdmin",
