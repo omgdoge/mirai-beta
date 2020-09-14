@@ -1,16 +1,33 @@
 const logger = require("../modules/log.js");
 module.exports = function({ models, api }) {
-	const Economy = models.use("user");
+	const Fishing = models.use("user");
+
+/* ==================== Last Time Fishing ==================== */
+
+	async function lastTimeFishing(uid) {
+		return (await Fishing.findOne({ where: { uid } })).get({ plain: true }).lastTimeFishing;
+	}
+
+	async function updateLastTimeFishing(uid, lastTimeFishing) {
+		try {
+			(await Fishing.findOne({ where: { uid } })).update({ lastTimeFishing });
+			return true;
+		}
+		catch (err) {
+			logger(err, 2);
+			return false;
+		}
+	}
 	
-/* ==================== Daily ==================== */
+/* ==================== Inventory ==================== */
 
-	async function getDailyTime(uid) {
-		return (await Economy.findOne({ where: { uid } })).get({ plain: true }).dailytime;
+	async function getInventory(uid) {
+		return (await Fishing.findOne({ where: { uid } })).get({ plain: true }).inventory;
 	}
 
-	async function updateDailyTime(uid, dailytime) {
+	async function updateInventory(uid, inventory) {
 		try {
-			(await Economy.findOne({ where: { uid } })).update({ dailytime });
+			(await Fishing.findOne({ where: { uid } })).update({ inventory });
 			return true;
 		}
 		catch (err) {
@@ -19,15 +36,15 @@ module.exports = function({ models, api }) {
 		}
 	}
 
-	/* ==================== Work ==================== */
+/* ==================== Stats ==================== */
 
-	async function getWorkTime(uid) {
-		return (await Economy.findOne({ where: { uid } })).get({ plain: true }).worktime;
+	async function getStats(uid) {
+		return (await Fishing.findOne({ where: { uid } })).get({ plain: true }).stats;
 	}
 
-	async function updateWorkTime(uid, worktime) {
+	async function updateStats(uid, stats) {
 		try {
-			(await Economy.findOne({ where: { uid } })).update({ worktime });
+			(await Fishing.findOne({ where: { uid } })).update({ stats });
 			return true;
 		}
 		catch (err) {
@@ -36,56 +53,15 @@ module.exports = function({ models, api }) {
 		}
 	}
 
-	/* ==================== Money ==================== */
+/* =================== Steal fishing ==================== */
 
-	async function getMoney(uid) {
-		return (await Economy.findOne({ where: { uid } })).get({ plain: true }).money;
+	async function getStealFishingTime(uid) {
+		return (await Fishing.findOne({ where: { uid } })).get({ plain: true }).stealfishtime;
 	}
 
-	async function addMoney(uid, moneyIncrement) {
+	async function updateStealFishingTime(uid, stealfishtime) {
 		try {
-			let money = (await getMoney(uid)) + moneyIncrement;
-			(await Economy.findOne({ where: { uid } })).update({ money });
-			return true;
-		}
-		catch (err) {
-			logger(err, 2);
-			return false;
-		}
-	}
-
-	async function subtractMoney(uid, moneyDecrement) {
-		try {
-			let money = (await getMoney(uid)) - moneyDecrement;
-			(await Economy.findOne({ where: { uid } })).update({ money });
-			return true;
-		}
-		catch (err) {
-			logger(err, 2);
-			return false;
-		}
-	}
-
-	async function setMoney(uid, money) {
-		try {
-			(await Economy.findOne({ where: { uid } })).update({ money });
-			return true;
-		}
-		catch (err) {
-			logger(err, 2);
-			return false;
-		}
-	}
-
-/* =================== Steal ==================== */
-
-	async function getStealTime(uid) {
-		return (await Economy.findOne({ where: { uid } })).get({ plain: true }).stealtime;
-	}
-
-	async function updateStealTime(uid, stealtime) {
-		try {
-			(await Economy.findOne({ where: { uid } })).update({ stealtime });
+			(await Fishing.findOne({ where: { uid } })).update({ stealfishtime });
 			return true;
 		}
 		catch (err) {
@@ -95,15 +71,13 @@ module.exports = function({ models, api }) {
 	}
 
 	return {
-		getDailyTime,
-		updateDailyTime,
-		getWorkTime,
-		updateWorkTime,
-		getMoney,
-		addMoney,
-		subtractMoney,
-		setMoney,
-		getStealTime,
-		updateStealTime
+		lastTimeFishing,
+		updateLastTimeFishing,
+		getInventory,
+		updateInventory,
+		getStats,
+		updateStats,
+		getStealFishingTime,
+		updateStealFishingTime
 	};
 };
