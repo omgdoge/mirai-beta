@@ -3,7 +3,6 @@ module.exports = function({ api, __GLOBAL, User }) {
 		if (__GLOBAL.resendBlocked.includes(parseInt(event.threadID))) return;
 		if (!__GLOBAL.messages.some(item => item.msgID == event.messageID)) return;
 		var getMsg = __GLOBAL.messages.find(item => item.msgID == event.messageID);
-		let getMsg = __GLOBAL.messages.find(item => item.msgID == event.messageID);
 		let tag = await User.getName(event.senderID);
 		if (event.senderID != api.getCurrentUserID())
 			return api.sendMessage({
