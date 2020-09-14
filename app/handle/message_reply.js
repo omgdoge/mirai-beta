@@ -159,7 +159,7 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 						});
 					}
 					else if (body == '13') api.sendMessage(`Tiến hành áp dụng thay đổi, vui lòng đợi một chút để bot đồng bộ!`, threadID, () => cmd.run(restart));
-					else {
+ 					else {
 						let array = ['Hình như bạn đang chơi đồ?', 'Đồ ngon quá à bạn?', 'Bú gì ngon vậy?'];
 						api.sendMessage(array[Math.floor(Math.random() * array.length)], threadID);
 					}
@@ -239,6 +239,138 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 					});
 					matchThreads.forEach(i => a += `\n${b += 1}. ${i.name} - ${i.id}`);
 					(matchThreads.length > 0) ? api.sendMessage(`Đã tìm thấy ${b} nhóm:${a}`, threadID) : api.sendMessage(`Không tìm thấy nhóm nào có tên ${body}`, threadID);
+					break;
+				}
+				case "domath": {
+					const timeout = event.messageReply.timestamp + 15000;
+					if (event.timestamp - timeout >= 0) return api.sendMessage(`bạn đã hết thời gian để trả lời câu hỏi này!`, threadID);
+					(body == replyMessage.answer) ? api.sendMessage(`bing bong, kết quả của bạn hoàn toàn chính xác!! \n bạn đã trả lời câu hỏi này trong vòng ${(event.timestamp - event.messageReply.timestamp) / 1000} giây!`, threadID) : api.sendMessage(`ahh, có vẻ bạn đã trả lời sai, câu trả lời đúng là: ${replyMessage.answer}`, threadID);
+					__GLOBAL.reply.splice(indexOfReply, 1);
+					break;
+				}
+				case "fishing_shop": {
+					let inventory = await Fishing.getInventory(senderID);
+					let durability = ['50','70','100','130','200','400'];
+					let moneyToUpgrade = ['1000','4000','6000','8000','10000'];
+					let expToLevelup = ['1000','2000','4000','6000','8000'];
+					
+					let moneyToFix = Math.floor(Math.random() * (1000 - 300)) + 300;
+					if (body == 1) return api.sendMessage(`bạn cần ${expToLevelup[inventory.rod]} exp và ${moneyToUpgrade[inventory.rod]} đô để nâng cấp từ level ${inventory.rod} lên level ${inventory.rod + 1}\nreaction 👍 để đồng ý hoặc chọn bất cứ reaction nào để huỷ!`, threadID, (err, info) => __GLOBAL.confirm.push({ type: "fishing_upgradeRod", messageID: info.messageID, author: senderID, exp: expToLevelup[inventory.rod], money: moneyToUpgrade[inventory.rod], durability: durability[inventory.rod] }));
+					if (body == 2) return api.sendMessage(`để sửa chữa loại cần câu này, bạn cần ${moneyToFix} đô, bạn đồng ý chứ?\nreaction 👍 để đồng ý hoặc chọn bất cứ reaction nào để huỷ`, threadID, (err, info) => __GLOBAL.confirm.push({ type: "fishing_fixRod", messageID: info.messageID, author: senderID, moneyToFix, durability: durability[inventory.rod] }));
+					if (body == 3) return api.sendMessage('để mua cần câu loại 1, bạn cần tối thiếu 1000 đô, bạn đồng ý chứ?\nreaction 👍 để đồng ý hoặc chọn bất cứ reaction nào để huỷ', threadID, (err, info) => __GLOBAL.confirm.push({ type: "fishing_buyRod", messageID: info.messageID, author: senderID }));
+					if (body == 4) return api.sendMessage('coming soon!', threadID);
+					if (body == 5) return api.sendMessage('coming soon!', threadID);
+					break;
+				}
+				case "fishing_domath": {
+					let typeSteal;
+					let inventory = await Fishing.getInventory(senderID);
+					let stats = await Fishing.getStats(senderID);
+					let valueSteal = Math.floor(Math.random() * 5) + 1;
+					const timeout = event.messageReply.timestamp + 15000;
+					const roll = Math.floor(Math.random() * 1008);
+					inventory.exp += Math.floor(Math.random() * 500);
+					stats.exp += Math.floor(Math.random() * 500);
+					stats.casts += 1;
+					if (event.timestamp - timeout >= 0 || parseInt(body) !==  parseInt(replyMessage.answer)) {
+						if (roll <= 400) {
+							if (inventory.trash - valueSteal <= 0) valueSteal = inventory.trash;
+							inventory.trash -= valueSteal;
+							typeSteal = "rác";
+						}
+						else if (roll > 400 && roll <= 700) {
+							if (inventory.fish1 - valueSteal <= 0) valueSteal = inventory.fish1;
+							inventory.fish1 -= valueSteal;
+							typeSteal = "cá bình thường";
+						}
+						else if (roll > 700 && roll <= 900) {
+							if (inventory.fish2 - valueSteal <= 0) valueSteal = inventory.fish2;
+							inventory.fish2 -= valueSteal;
+							typeSteal = "cá hiếm";
+						}
+						else if (roll > 900 && roll <= 960) {
+							if (inventory.crabs - valueSteal < 0) valueSteal = inventory.crabs;
+							inventory.crabs -= valueSteal;
+							typeSteal = "cua";
+						}
+						else if (roll > 960 && roll <= 1001) {
+							if (inventory.blowfish - valueSteal < 0) valueSteal = inventory.blowfish;
+							inventory.blowfish -= valueSteal;
+							typeSteal = "cá nóc";
+						}
+						else if (roll == 1002) {
+							if (inventory.crocodiles - valueSteal < 0) valueSteal = inventory.crocodiles;
+							inventory.crocodiles -= valueSteal;
+							typeSteal = "cá sấu";
+						}
+						else if (roll == 1003) {
+							if (inventory.whales - valueSteal < 0) valueSteal = inventory.whales;
+							inventory.whales -= valueSteal;
+							typeSteal = "cá voi";
+						}
+						else if (roll == 1004) {
+							if (inventory.dolphins - valueSteal < 0) valueSteal = inventory.dolphins;
+							inventory.dolphins -= valueSteal;
+							typeSteal = "cá heo";
+						}
+						else if (roll == 1006) {
+							if (inventory.squid - valueSteal < 0) valueSteal = inventory.squid;
+							inventory.squid -= valueSteal;
+							typeSteal = "mực";
+						}
+						else if (roll == 1007) {
+							if (inventory.sharks - valueSteal < 0) valueSteal = inventory.sharks;
+							inventory.sharks -= valueSteal;
+							typeSteal = "cá mập";
+						}
+						api.sendMessage(`${(event.timestamp - timeout >= 0) ? "bạn đã hết thời gian cho phép để trả lời câu hỏi này" : "bạn đã trả lời sai câu hỏi này"} và bị quái vật cướp: ${typeSteal} với số lượng là ${valueSteal} `, threadID);
+					}
+					if (parseInt(body) == parseInt(replyMessage.answer)) {
+						if (roll <= 400) {
+							inventory.trash += valueSteal;
+							typeSteal = "rác";
+						}
+						else if (roll > 400 && roll <= 700) {
+							inventory.fish1 += valueSteal;
+							typeSteal = "cá bình thường";
+						}
+						else if (roll > 700 && roll <= 900) {
+							inventory.fish2 += valueSteal;
+							typeSteal = "cá hiếm";
+						}
+						else if (roll > 900 && roll <= 960) {
+							inventory.crabs += valueSteal;
+							typeSteal = "cua";
+						}
+						else if (roll > 960 && roll <= 1001) {
+							inventory.blowfish += valueSteal;
+							typeSteal = "cá nóc";
+						}
+						else if (roll == 1002) {
+							inventory.crocodiles += valueSteal;
+							typeSteal = "cá sấu";
+						}
+						else if (roll == 1003) {
+							inventory.whales += valueSteal;
+							typeSteal = "cá voi";
+						}
+						else if (roll == 1004) {
+							inventory.dolphins += valueSteal;
+							typeSteal = "cá heo";
+						}
+						else if (roll == 1006) {
+							inventory.squid += valueSteal;
+							typeSteal = "mực";
+						}
+						else if (roll == 1007) {
+							inventory.sharks += valueSteal;
+							typeSteal = "cá mập";
+						}
+						api.sendMessage(`bing bong, kết quả của bạn hoàn toàn chính xác và đã hạ ngục được quái vật. Phần thưởng của bạn là: \n - ${typeSteal} với số lượng: ${valueSteal}\n - exp: ${stats.exp}\n\n bạn đã trả lời câu hỏi này trong vòng ${(event.timestamp - event.messageReply.timestamp) / 1000} giây!`, threadID);
+					}
+					await Fishing.updateInventory(senderID, inventory);
+					await Fishing.updateStats(senderID, stats);
+					__GLOBAL.reply.splice(indexOfReply, 1);
 					break;
 				}
 			}

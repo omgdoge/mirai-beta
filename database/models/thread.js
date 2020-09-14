@@ -22,7 +22,7 @@ module.exports = function({ sequelize, Sequelize }) {
 		},
 		blockResend: {
 			type: Sequelize.BOOLEAN,
-			defaultValue: false
+			defaultValue: true
 		}
 	});
 	return Thread;

@@ -373,22 +373,22 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 				}
 			}
 			else if (content.indexOf("createUser") == 0) {
-				const mentions = Object.keys(event.mentions);
-				if (mentions.length == 0) {
-					if (isNaN(arg)) return api.sendMessage("Không phải là ID.", threadID, messageID);
-					let success = await User.createUser(arg);
-					let name = await User.getName(arg);
-					return (success) ? api.sendMessage("Đã thêm " + name + " vào database.", threadID, messageID) : api.sendMessage(name + " đã có sẵn trong database.", threadID, messageID);
-				}
-				else {
-					for (let i of mentions) {
-						let success = await User.createUser(i);
-						let name = await User.getName(i);
-						(success) ? api.sendMessage("Đã thêm " + name + " vào database.", threadID, messageID) : api.sendMessage(name + " đã có sẵn trong database.", threadID, messageID);
-					}
-					return;
-				}	
-			}
+ 				const mentions = Object.keys(event.mentions);
+ 				if (mentions.length == 0) {
+ 					if (isNaN(arg)) return api.sendMessage("Không phải là ID.", threadID, messageID);
+ 					let success = await User.createUser(arg);
+ 					let name = await User.getName(arg);
+ 					return (success) ? api.sendMessage("Đã thêm " + name + " vào database.", threadID, messageID) : api.sendMessage(name + " đã có sẵn trong database.", threadID, messageID);
+ 				}
+ 				else {
+ 					for (let i of mentions) {
+ 						let success = await User.createUser(i);
+ 						let name = await User.getName(i);
+ 						(success) ? api.sendMessage("Đã thêm " + name + " vào database.", threadID, messageID) : api.sendMessage(name + " đã có sẵn trong database.", threadID, messageID);
+ 					}
+ 					return;
+ 				}
+ 			}
 			else if (content.indexOf("addUser") == 0) return api.addUserToGroup(arg, threadID);
 			else if (content.indexOf("restart") == 0) return api.sendMessage(`Hệ thống restart khẩn ngay bây giờ!`, threadID, () => require("node-cmd").run("pm2 restart 0"), messageID);
 			else return api.sendMessage(`Lệnh không tồn tại!`, threadID, messageID);
@@ -747,7 +747,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 				let shortout = content.slice(narrow + 4, content.length);
 				if (shortin == shortout) return api.sendMessage('Input và output giống nhau', threadID, messageID);
 				if (!shortin) return api.sendMessage("Bạn chưa nhập input.", threadID, messageID);
-				if (!shortout) return api.sendMessage("Bạn chưa nhập output.", threadID, messageID);
+				if (!shortout) return api.sendMessage("Bạn chưa nhập output.", threadID, messageID);
 				return fs.readFile(__dirname + "/src/shortcut.json", "utf-8", (err, data) => {
 					if (err) throw err;
 					var oldData = JSON.parse(data);
@@ -827,6 +827,26 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 
 		//mit
 		if (contentMessage.indexOf(`${prefix}mit`) == 0) return request(`https://kakko.pandorabots.com/pandora/talk-xml?input=${encodeURIComponent(contentMessage.slice(prefix.length + 4, contentMessage.length))}&botid=9fa364f2fe345a10&custid=${senderID}`, (err, response, body) => api.sendMessage((/<that>(.*?)<\/that>/.exec(body)[1]), threadID, messageID));
+
+		//penis
+		if (contentMessage.indexOf(`${prefix}penis`) == 0) return api.sendMessage(`8${'='.repeat(Math.floor(Math.random() * 30))}D`, threadID, messageID);
+
+		//reminder
+		if (contentMessage.indexOf(`${prefix}reminder`) == 0) {
+			const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+			const time = contentMessage.slice(prefix.length + 9, contentMessage.length);
+			if (isNaN(time)) return api.sendMessage(`thời gian bạn nhập không phải là một con số!`, threadID, messageID);
+			const display = time > 59 ? `${time / 60} phút` : `${time} giây`;
+			api.sendMessage(`tôi sẽ nhắc bạn sau: ${display}`, threadID, messageID);
+			await delay(time * 1000);
+			api.sendMessage({
+				body: `Người lạ ơi, có vẻ bạn đã nhờ tôi nhắc bạn làm việc gì đó thì phải?`,
+				mentions: [{
+					tag: 'Người lạ ơi',
+					id: senderID
+				}]
+			}, threadID, messageID);
+		}
 
 		//random màu cho theme chat
 		if (contentMessage == `${prefix}randomcolor`) {
@@ -985,16 +1005,16 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 					let name = event.mentions[i].replace('@', '');
 					let rank = all.findIndex(item => item.uid == i) + 1;
 					if (rank == 0) api.sendMessage(name + ' chưa có trong database nên không thể xem rank.', threadID, messageID);
-					else Rank.getInfo(i).then(point => createCard({ id: parseInt(i), name, rank, ...point })).then(path => api.sendMessage({attachment: fs.createReadStream(path)}, threadID, () => fs.unlinkSync(path), messageID));
+					else Rank.getInfo(i).then(point => createCard({ id: senderID, name, rank, ...point })).then(path => api.sendMessage({attachment: fs.createReadStream(path)}, threadID, () => fs.unlinkSync(path), messageID));
 				});
 			}
 			return;
 		}
 
-		//dịch ngôn ngữ
+		//dịch ngôn ngữ
 		if (contentMessage.indexOf(`${prefix}trans`) == 0) {
 			var content = contentMessage.slice(prefix.length + 6, contentMessage.length);
-			if (content.length == 0 && event.type != "message_reply") return api.sendMessage(`Bạn chưa nhập thông tin, vui lòng đọc ${prefix}help để biết thêm chi tiết!`, threadID,messageID);
+			if (content.length == 0 && event.type != "message_reply") return api.sendMessage(`Bạn chưa nhập thông tin, vui lòng đọc ${prefix}help để biết thêm chi tiết!`, threadID,messageID);
 			var translateThis = content.slice(0, content.indexOf(" ->"));
 			var lang = content.substring(content.indexOf(" -> ") + 4);
 			if (event.type == "message_reply") {
@@ -1010,7 +1030,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 				if (err) return api.sendMessage("Đã có lỗi xảy ra!", threadID, messageID)
 				var retrieve = JSON.parse(body);
 				var fromLang = retrieve[0][0][8][0][0][1].split("_")[0];
-				api.sendMessage(`Bản dịch: ${retrieve[0][0][0]}\n - được dịch từ ${fromLang} sang ${lang}`, threadID, messageID);
+				api.sendMessage(`Bản dịch: ${retrieve[0][0][0]}\n - được dịch từ ${fromLang} sang ${lang}`, threadID, messageID);
 			});
 		}
 
@@ -1056,7 +1076,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 		//ping
 		if (contentMessage == `${prefix}ping`)
 			return api.getThreadInfo(threadID, (err, info) => {
-				if (err) return api.sendMessage('Đã có lỗi xảy ra!.', threadID, messageID);
+				if (err) return api.sendMessage('Đã có lỗi xảy ra!.', threadID, messageID);
 				var ids = info.participantIDs;
 				ids.splice(ids.indexOf(api.getCurrentUserID()), 1);
 				var body = '@everyone', mentions = [];
@@ -1144,6 +1164,14 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 			return;
 		}
 
+		/* ==================== Game Commands ==================== */
+
+		//osu!
+		if (contentMessage.indexOf(`osu!`) == 0) {
+			if (!contentMessage.slice(5, contentMessage.length)) return api.sendMessage(`Bạn chưa nhập username!`, threadID, messageID);
+			return request(`http://lemmmy.pw/osusig/sig.php?colour=hex8866ee&uname=${contentMessage.slice(5, contentMessage.length)}&pp=1&countryrank&rankedscore&onlineindicator=undefined&xpbar&xpbarhex`).pipe(fs.createWriteStream(__dirname + `/src/osu!.png`)).on("close", () => api.sendMessage({attachment: fs.createReadStream(__dirname + `/src/osu!.png`)}, threadID, () => fs.unlinkSync(__dirname + `/src/osu!.png`), messageID))
+		}
+
 		/* ==================== Study Commands ==================== */
 
 		//toán học
@@ -1177,6 +1205,55 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 				var balanced = chemeb(msg);
 				return api.sendMessage(`✅ ${balanced.outChem}`, threadID, messageID);
 			}
+		}
+
+		//do math
+		if (contentMessage.indexOf(`${prefix}domath`) == 0) {
+			const content = contentMessage.slice(prefix.length + 7, contentMessage.length);
+			let difficulty, answer, value1, value2;
+			const difficulties = ['baby', 'easy', 'medium', 'hard', 'extreme', 'impossible'];
+			(difficulties.some(item => content.indexOf(item) == 0)) ? difficulty = content : difficulty = difficulties[Math.floor(Math.random() * difficulties.length)];
+			const operations = ['+', '-', '*'];
+			const maxValues = {
+				baby: 10,
+				easy: 50,
+				medium: 100,
+				hard: 500,
+				extreme: 1000,
+				impossible: Number.MAX_SAFE_INTEGER
+			};
+			const maxMultiplyValues = {
+				baby: 5,
+				easy: 12,
+				medium: 30,
+				hard: 50,
+				extreme: 100,
+				impossible: Number.MAX_SAFE_INTEGER
+			};
+			const operation = operations[Math.floor(Math.random() * operations.length)];
+			switch (operation) {
+				case '+':
+				value1 = Math.floor(Math.random() * maxValues[difficulty]) + 1;
+				value2 = Math.floor(Math.random() * maxValues[difficulty]) + 1;
+				answer = value1 + value2;
+				break;
+				case '-':
+				value1 = Math.floor(Math.random() * maxValues[difficulty]) + 1;
+				value2 = Math.floor(Math.random() * maxValues[difficulty]) + 1;
+				answer = value1 - value2;
+				break;
+				case '*':
+				value1 = Math.floor(Math.random() * maxMultiplyValues[difficulty]) + 1;
+				value2 = Math.floor(Math.random() * maxMultiplyValues[difficulty]) + 1;
+				answer = value1 * value2;
+				break;
+			}
+			return api.sendMessage(
+				'== Bạn có 15 giây để trả lời ==' +
+				`\n ${value1} ${operation} ${value2} = ?`,
+				threadID, (err, info) => __GLOBAL.reply.push({ type: "domath", messageID: info.messageID, target: parseInt(threadID), author: senderID, answer }),
+				messageID
+			)
 		}
 
 	/* ==================== NSFW Commands ==================== */
@@ -1644,14 +1721,49 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 		if (contentMessage.indexOf(`${prefix}fishing`) == 0) {
 			var content = contentMessage.slice(prefix.length + 8, contentMessage.length);
 			let inventory = await Fishing.getInventory(senderID);
+			let timeout = ['30000','25000','20000','15000','5000'];
+			const rodLevel = inventory.rod - 1;
 			if (!content) {
 				let stats = await Fishing.getStats(senderID);
 				let lastTimeFishing = await Fishing.lastTimeFishing(senderID);
-				let moneydb = await Economy.getMoney(senderID);
-				if (new Date() - new Date(lastTimeFishing) >= 5000) {
+				if (inventory.rod == 0) return api.sendMessage(`Có vẻ bạn chưa có cần câu để câu cá, bạn hãy mua trong shop!`, threadID, messageID);
+				if (new Date() - new Date(lastTimeFishing) >= timeout[rodLevel]) {
+					if (inventory.durability <= 0) return api.sendMessage(`cần câu của bạn có vẻ đã bị gãy, hãy vào shop và sửa lại cần câu để tiếp tục sử dụng`, threadID);
 					var roll = Math.floor(Math.random() * 1008);
-					lastTimeFishing = new Date();
+					var rpgRoll = Math.floor(Math.random() * 51);
+					inventory.exp += Math.floor(Math.random() * 500);
+					inventory.durability -= Math.floor(Math.random() * 9) + 1;
+					stats.exp += Math.floor(Math.random() * 500);
 					stats.casts += 1;
+					if (rpgRoll == 51) {
+						await Fishing.updateLastTimeFishing(senderID, lastTimeFishing);
+						let difficulty, answer, value1, value2;
+						const difficulties = ['baby', 'easy', 'medium', 'hard', 'extreme', 'impossible'];
+						difficulty =  difficulties[Math.floor(Math.random() * difficulties.length)];
+						const operations = ['+', '-', '*'];
+						const maxValues = { baby: 10,easy: 50,medium: 100,hard: 500,extreme: 1000,impossible: Number.MAX_SAFE_INTEGER };
+						const maxMultiplyValues = { baby: 5,easy: 12,medium: 30,hard: 50,extreme: 100,impossible: Number.MAX_SAFE_INTEGER };
+						const operation = operations[Math.floor(Math.random() * operations.length)];
+						value1 = Math.floor(Math.random() * maxValues[difficulty]) + 1;
+						value2 = Math.floor(Math.random() * maxValues[difficulty]) + 1;
+						switch (operation) {
+							case '+':
+							answer = value1 + value2;
+							break;
+							case '-':
+							answer = value1 - value2;
+							break;
+							case '*':
+							answer = value1 * value2;
+							break;
+						}
+						api.sendMessage(
+							'== oh no, bạn gặp phải con quái vật của hồ này và có mức độ ' + difficulty + ', bạn có 15 giây để trả lời câu hỏi này và hạ ngục con quái vật này ==' +
+							`\n ${value1} ${operation} ${value2} = ?`,
+							threadID, (err, info) => __GLOBAL.reply.push({ type: "fishing_domath", messageID: info.messageID, target: parseInt(threadID), author: senderID, answer }),
+							messageID
+						)
+					}
 					if (roll <= 400) {
 						var arrayTrash = ["🏐","💾","📎","💩","🦴","🥾","🥾","🌂"];
 						inventory.trash += 1;
@@ -1703,18 +1815,22 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 						stats.sharks += 1;
 						api.sendMessage('🦈 | Bạn đã bắt được một con cá mập nhưng không mập 😲', threadID, messageID);
 					}
-					await Fishing.updateLastTimeFishing(senderID, lastTimeFishing);
+					await Fishing.updateLastTimeFishing(senderID, new Date());
 					await Fishing.updateInventory(senderID, inventory);
 					await Fishing.updateStats(senderID, stats);
-					await Economy.subtractMoney(senderID, 2);
 				}
-				else if (new Date() - new Date(lastTimeFishing) <= 5000) api.sendMessage('Bạn chỉ được câu cá mỗi 5 giây một lần, vui lòng không spam .-.', threadID, messageID);
+				else if (new Date() - new Date(lastTimeFishing) <= timeout[rodLevel]) api.sendMessage(`Bạn chỉ được câu cá mỗi ${timeout[rodLevel] / 1000} giây một lần, vui lòng không spam .-.`, threadID, messageID);
 			}
 			else if (content.indexOf('bag') == 0) {
-				var total = inventory.trash + inventory.fish1 * 30 + inventory.fish2 * 100 + inventory.crabs * 250 + inventory.blowfish * 300 + inventory.crocodiles * 500 + inventory.whales * 750 + inventory.dolphins * 750 + inventory.squid * 1000 + inventory.sharks * 1000;
+				if (inventory.rod == 0) return api.sendMessage(`Có vẻ bạn chưa có cần câu để câu cá, bạn hãy mua trong shop!`, threadID, messageID);
+				let durability = ['50','70','100','130','200','400'];
+				let expToLevelup = ['1000','2000','4000','6000','8000'];
+				const total = inventory.trash + inventory.fish1 * 30 + inventory.fish2 * 100 + inventory.crabs * 250 + inventory.blowfish * 300 + inventory.crocodiles * 500 + inventory.whales * 750 + inventory.dolphins * 750 + inventory.squid * 1000 + inventory.sharks * 1000;
 				api.sendMessage(
 					"===== Inventory Của Bạn =====" +
-					"\n- Số lượng:" +
+					`\n- item cần câu bạn đang sử dụng: level ${inventory.rod} - Durability: ${inventory.durability}/${durability[rodLevel]}` +
+					`\n- exp hiện đang có: ${inventory.exp}/${expToLevelup[rodLevel]}` +
+					"\n- sản lượng đang có trong túi:" +
 					"\n+ Rác | 🗑️: " + inventory.trash +
 					"\n+ Cá cỡ bình thường | 🐟: " + inventory.fish1 +
 					"\n+ Cá hiếm | 🐠: " + inventory.fish2 +
@@ -1941,6 +2057,17 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 					Fishing.updateStealFishingTime(senderID, Date.now());
 				});
 			}
+			else if (content.indexOf('shop') == 0) 
+				return api.sendMessage(
+					"🎣| Cửa hàng câu cá |🎣" +
+					"\n---------------------" +
+					"\n[1] Nâng cấp cần câu" +
+					"\n[2] Sửa chữa cần câu" +
+					"\n[3] Mua cần câu mới" +
+					"\n[4] Mua mồi nhử" +
+					"\n[5] Nâng cấp mồi nhử",
+					threadID, (err, info) => __GLOBAL.reply.push({ type: "fishing_shop", messageID: info.messageID, target: parseInt(threadID), author: senderID})
+				);
 		}
 		
 
