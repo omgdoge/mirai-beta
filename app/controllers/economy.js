@@ -62,7 +62,7 @@ module.exports = function({ models, api }) {
 		}
 		catch (err) {
 			logger(err, 2);
- 			return false;
+			return false;
 		}
 	}
 
@@ -73,7 +73,7 @@ module.exports = function({ models, api }) {
 		}
 		catch (err) {
 			logger(err, 2);
- 			return false;
+			return false;
 		}
 	}	
 
@@ -90,7 +90,7 @@ module.exports = function({ models, api }) {
 		}
 		catch (err) {
 			logger(err, 2);
- 			return false;
+			return false;
 		}
 	}
 
