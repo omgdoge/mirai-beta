@@ -9,6 +9,7 @@ module.exports = function({ models, api }) {
 			let [ thread, created ] = await Thread.findOrCreate({ where: { threadID }, defaults: { name } });
 			if (created) return logger(threadID, 'New Thread');
 		}
+		else return;
 	}
 
 	async function getInfo(threadID) {
@@ -51,6 +52,7 @@ module.exports = function({ models, api }) {
 
 	async function unban(threadID, block = false) {
 		try {
+			await createThread(threadID);
 			(await Thread.findOne({ where: { threadID } })).update({ block });
 			return true;
 		}

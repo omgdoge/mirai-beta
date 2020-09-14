@@ -40,7 +40,8 @@ module.exports = function({ models, api }) {
 		return FACTOR * level * (level - 1);
 	}
 
-	function getInfo(point) {
+	async function getInfo(uid) {
+		const point = await getPoint(uid);
 		const level = expToLevel(point);
 		const expCurrent = point - levelToExp(level);
 		const expNextLevel = levelToExp(level + 1) - levelToExp(level);
@@ -50,6 +51,7 @@ module.exports = function({ models, api }) {
 	return {
 		getPoint,
 		updatePoint,
-		setPoint
+		setPoint,
+		getInfo
 	};
 };

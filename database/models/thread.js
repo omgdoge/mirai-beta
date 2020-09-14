@@ -5,12 +5,12 @@ module.exports = function({ sequelize, Sequelize }) {
 			primaryKey: true,
 			autoIncrement: true
 		},
+		name: {
+ 			type: Sequelize.STRING
+ 		},
 		threadID: {
 			type: Sequelize.BIGINT,
 			unique: true
-		},
-		name: {
-			type: Sequelize.STRING
 		},
 		block: {
 			type: Sequelize.BOOLEAN,
@@ -22,7 +22,7 @@ module.exports = function({ sequelize, Sequelize }) {
 		},
 		blockResend: {
 			type: Sequelize.BOOLEAN,
-			defaultValue: false
+			defaultValue: true
 		}
 	});
 	return Thread;

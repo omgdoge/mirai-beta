@@ -12,13 +12,17 @@ module.exports = function({ sequelize, Sequelize }) {
 			type: Sequelize.BIGINT,
 			unique: true
 		},
+		block: {
+ 			type: Sequelize.BOOLEAN,
+ 			defaultValue: false
+ 		},
 		point: {
 			type: Sequelize.BIGINT,
 			defaultValue: 0
 		},
-		block: {
-			type: Sequelize.BOOLEAN,
-			defaultValue: false
+		money: {
+			type: Sequelize.BIGINT,
+			defaultValue: 0
 		},
 		afk: {
 			type: Sequelize.BOOLEAN,
@@ -26,10 +30,6 @@ module.exports = function({ sequelize, Sequelize }) {
 		},
 		reasonafk: {
 			type: Sequelize.STRING
-		},
-		money: {
-			type: Sequelize.BIGINT,
-			defaultValue: 0
 		},
 		dailytime: {
 			type: Sequelize.BIGINT,
