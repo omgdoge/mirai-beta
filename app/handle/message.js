@@ -1005,7 +1005,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 					let name = event.mentions[i].replace('@', '');
 					let rank = all.findIndex(item => item.uid == i) + 1;
 					if (rank == 0) api.sendMessage(name + ' chưa có trong database nên không thể xem rank.', threadID, messageID);
-					else Rank.getInfo(i).then(point => createCard({ id: senderID, name, rank, ...point })).then(path => api.sendMessage({attachment: fs.createReadStream(path)}, threadID, () => fs.unlinkSync(path), messageID));
+					else Rank.getInfo(i).then(point => createCard({ id: parseInt(i), name, rank, ...point })).then(path => api.sendMessage({attachment: fs.createReadStream(path)}, threadID, () => fs.unlinkSync(path), messageID));
 				});
 			}
 			return;
@@ -1214,37 +1214,19 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 			const difficulties = ['baby', 'easy', 'medium', 'hard', 'extreme', 'impossible'];
 			(difficulties.some(item => content.indexOf(item) == 0)) ? difficulty = content : difficulty = difficulties[Math.floor(Math.random() * difficulties.length)];
 			const operations = ['+', '-', '*'];
-			const maxValues = {
-				baby: 10,
-				easy: 50,
-				medium: 100,
-				hard: 500,
-				extreme: 1000,
-				impossible: Number.MAX_SAFE_INTEGER
-			};
-			const maxMultiplyValues = {
-				baby: 5,
-				easy: 12,
-				medium: 30,
-				hard: 50,
-				extreme: 100,
-				impossible: Number.MAX_SAFE_INTEGER
-			};
+			const maxValues = { baby: 10, easy: 50, medium: 100, hard: 500, extreme: 1000, impossible: Number.MAX_SAFE_INTEGER };
+			const maxMultiplyValues = { baby: 5, easy: 12, medium: 30, hard: 50, extreme: 100, impossible: Number.MAX_SAFE_INTEGE };
 			const operation = operations[Math.floor(Math.random() * operations.length)];
+			value1 = Math.floor(Math.random() * maxValues[difficulty] - 1) + 1;
+			value2 = Math.floor(Math.random() * maxValues[difficulty] -1 ) + 1;
 			switch (operation) {
 				case '+':
-				value1 = Math.floor(Math.random() * maxValues[difficulty]) + 1;
-				value2 = Math.floor(Math.random() * maxValues[difficulty]) + 1;
 				answer = value1 + value2;
 				break;
 				case '-':
-				value1 = Math.floor(Math.random() * maxValues[difficulty]) + 1;
-				value2 = Math.floor(Math.random() * maxValues[difficulty]) + 1;
 				answer = value1 - value2;
 				break;
 				case '*':
-				value1 = Math.floor(Math.random() * maxMultiplyValues[difficulty]) + 1;
-				value2 = Math.floor(Math.random() * maxMultiplyValues[difficulty]) + 1;
 				answer = value1 * value2;
 				break;
 			}
@@ -1719,117 +1701,113 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 
 		//fishing
 		if (contentMessage.indexOf(`${prefix}fishing`) == 0) {
-			var content = contentMessage.slice(prefix.length + 8, contentMessage.length);
 			let inventory = await Fishing.getInventory(senderID);
 			let timeout = ['30000','25000','20000','15000','5000'];
-			const rodLevel = inventory.rod - 1;
+			var content = contentMessage.slice(prefix.length + 8, contentMessage.length);
+			var rodLevel = inventory.rod - 1;
 			if (!content) {
-				let stats = await Fishing.getStats(senderID);
-				let lastTimeFishing = await Fishing.lastTimeFishing(senderID);
 				if (inventory.rod == 0) return api.sendMessage(`Có vẻ bạn chưa có cần câu để câu cá, bạn hãy mua trong shop!`, threadID, messageID);
-				if (new Date() - new Date(lastTimeFishing) >= timeout[rodLevel]) {
-					if (inventory.durability <= 0) return api.sendMessage(`cần câu của bạn có vẻ đã bị gãy, hãy vào shop và sửa lại cần câu để tiếp tục sử dụng`, threadID);
-					var roll = Math.floor(Math.random() * 1008);
-					var rpgRoll = Math.floor(Math.random() * 51);
-					inventory.exp += Math.floor(Math.random() * 500);
-					inventory.durability -= Math.floor(Math.random() * 9) + 1;
-					stats.exp += Math.floor(Math.random() * 500);
-					stats.casts += 1;
-					if (rpgRoll == 51) {
-						await Fishing.updateLastTimeFishing(senderID, lastTimeFishing);
-						let difficulty, answer, value1, value2;
-						const difficulties = ['baby', 'easy', 'medium', 'hard', 'extreme', 'impossible'];
-						difficulty =  difficulties[Math.floor(Math.random() * difficulties.length)];
-						const operations = ['+', '-', '*'];
-						const maxValues = { baby: 10,easy: 50,medium: 100,hard: 500,extreme: 1000,impossible: Number.MAX_SAFE_INTEGER };
-						const maxMultiplyValues = { baby: 5,easy: 12,medium: 30,hard: 50,extreme: 100,impossible: Number.MAX_SAFE_INTEGER };
-						const operation = operations[Math.floor(Math.random() * operations.length)];
-						value1 = Math.floor(Math.random() * maxValues[difficulty]) + 1;
-						value2 = Math.floor(Math.random() * maxValues[difficulty]) + 1;
-						switch (operation) {
-							case '+':
-							answer = value1 + value2;
-							break;
-							case '-':
-							answer = value1 - value2;
-							break;
-							case '*':
-							answer = value1 * value2;
-							break;
-						}
-						api.sendMessage(
-							'== oh no, bạn gặp phải con quái vật của hồ này và có mức độ ' + difficulty + ', bạn có 15 giây để trả lời câu hỏi này và hạ ngục con quái vật này ==' +
-							`\n ${value1} ${operation} ${value2} = ?`,
-							threadID, (err, info) => __GLOBAL.reply.push({ type: "fishing_domath", messageID: info.messageID, target: parseInt(threadID), author: senderID, answer }),
-							messageID
-						)
+				let lastTimeFishing = await Fishing.lastTimeFishing(senderID);
+				if (new Date() - new Date(lastTimeFishing) <= timeout[rodLevel]) api.sendMessage(`Bạn bị giới hạn thời gian, chỉ được câu cá mỗi ${timeout[rodLevel] / 1000} giây một lần`, threadID, messageID);
+				if (inventory.durability <= 0) return api.sendMessage(`cần câu của bạn có vẻ đã bị gãy, hãy vào shop và sửa lại cần câu để tiếp tục sử dụng`, threadID);
+				let stats = await Fishing.getStats(senderID);
+				var roll = Math.floor(Math.random() * 1008);
+				inventory.exp += Math.floor(Math.random() * 500);
+				inventory.durability -= Math.floor(Math.random() * 9) + 1;
+				stats.exp += Math.floor(Math.random() * 500);
+				stats.casts += 1;
+				if (Math.floor(Math.random() * 51) == 51) {
+					let difficulty, answer, value1, value2;
+					var difficulties = ['baby', 'easy', 'medium', 'hard', 'extreme'];
+					difficulty =  difficulties[Math.floor(Math.random() * difficulties.length)];
+					var operations = ['+', '-', '*'];
+					var maxValues = { baby: 10,easy: 50,medium: 100,hard: 500,extreme: 1000 };
+					var maxMultiplyValues = { baby: 5,easy: 12,medium: 30,hard: 50,extreme: 100 };
+					var operation = operations[Math.floor(Math.random() * operations.length)];
+					value1 = Math.floor(Math.random() * maxValues[difficulty] - 1) + 1;
+					value2 = Math.floor(Math.random() * maxValues[difficulty] - 1) + 1;
+					switch (operation) {
+						case '+':
+						answer = value1 + value2;
+						break;
+						case '-':
+						answer = value1 - value2;
+						break;
+						case '*':
+						answer = value1 * value2;
+						break;
 					}
-					if (roll <= 400) {
-						var arrayTrash = ["🏐","💾","📎","💩","🦴","🥾","🥾","🌂"];
-						inventory.trash += 1;
-						stats.trash += 1;
-						api.sendMessage(arrayTrash[Math.floor(Math.random() * arrayTrash.length)] + ' | Oh, xung quanh bạn toàn là rác êii', threadID, messageID);
-					}
-					else if (roll > 400 && roll <= 700) {
-						inventory.fish1 += 1;
-						stats.fish1 += 1;
-						api.sendMessage('🐟 | Bạn đã bắt được một con cá cỡ bình thường 😮', threadID, messageID);
-					}
-					else if (roll > 700 && roll <= 900) {
-						inventory.fish2 += 1;
-						stats.fish2 += 1;
-						api.sendMessage('🐠 | Bạn đã bắt được một con cá hiếm 😮', threadID, messageID);
-					}
-					else if (roll > 900 && roll <= 960) {
-						inventory.crabs += 1;
-						stats.crabs += 1;
-						api.sendMessage('🦀 | Bạn đã bắt được một con cua siêu to khổng lồ 😮', threadID, messageID);
-					}
-					else if (roll > 960 && roll <= 1001) {
-						inventory.blowfish += 1;
-						stats.blowfish += 1;
-						api.sendMessage('🐡 | Bạn đã bắt được một con cá nóc *insert meme cá nóc ăn carot .-.*', threadID, messageID);
-					}
-					else if (roll == 1002) {
-						inventory.crocodiles += 1;
-						stats.crocodiles += 1;
-						api.sendMessage('🐊 | Bạn đã bắt được một con cá sấu đẹp trai hơn cả bạn 😮', threadID, messageID);
-					}
-					else if (roll == 1003) {
-						inventory.whales += 1;
-						stats.whales += 1;
-						api.sendMessage('🐋 | Bạn đã bắt được một con cá voi siêu to khổng lồ 😮', threadID, messageID);
-					}
-					else if (roll == 1004) {
-						inventory.dolphins += 1;
-						stats.dolphins += 1;
-						api.sendMessage('🐬 | Damn bro, tại sao bạn lại bắt một con cá heo dễ thương thế kia 😱', threadID, messageID);
-					}
-					else if (roll == 1006) {
-						inventory.squid += 1;
-						stats.squid += 1;
-						api.sendMessage('🦑 | Bạn đã bắt được một con mực 🤤', threadID, messageID);
-					}
-					else if (roll == 1007) {
-						inventory.sharks += 1;
-						stats.sharks += 1;
-						api.sendMessage('🦈 | Bạn đã bắt được một con cá mập nhưng không mập 😲', threadID, messageID);
-					}
-					await Fishing.updateLastTimeFishing(senderID, new Date());
-					await Fishing.updateInventory(senderID, inventory);
-					await Fishing.updateStats(senderID, stats);
+					api.sendMessage(
+						'== oh no, bạn gặp phải con quái vật của hồ này và có mức độ ' + difficulty + ', bạn có 15 giây để trả lời câu hỏi này và hạ ngục con quái vật này ==' +
+						`\n ${value1} ${operation} ${value2} = ?`,
+						threadID, (err, info) => __GLOBAL.reply.push({ type: "fishing_domath", messageID: info.messageID, target: parseInt(threadID), author: senderID, answer }),
+						messageID
+					)
 				}
-				else if (new Date() - new Date(lastTimeFishing) <= timeout[rodLevel]) api.sendMessage(`Bạn chỉ được câu cá mỗi ${timeout[rodLevel] / 1000} giây một lần, vui lòng không spam .-.`, threadID, messageID);
+				if (roll <= 400) {
+					var arrayTrash = ["🏐","💾","📎","💩","🦴","🥾","🥾","🌂"];
+					inventory.trash += 1;
+					stats.trash += 1;
+					api.sendMessage(arrayTrash[Math.floor(Math.random() * arrayTrash.length)] + ' | Oh, xung quanh bạn toàn là rác êii', threadID, messageID);
+				}
+				else if (roll > 400 && roll <= 700) {
+					inventory.fish1 += 1;
+					stats.fish1 += 1;
+					api.sendMessage('🐟 | Bạn đã bắt được một con cá cỡ bình thường 😮', threadID, messageID);
+				}
+				else if (roll > 700 && roll <= 900) {
+					inventory.fish2 += 1;
+					stats.fish2 += 1;
+					api.sendMessage('🐠 | Bạn đã bắt được một con cá hiếm 😮', threadID, messageID);
+				}
+				else if (roll > 900 && roll <= 960) {
+					inventory.crabs += 1;
+					stats.crabs += 1;
+					api.sendMessage('🦀 | Bạn đã bắt được một con cua siêu to khổng lồ 😮', threadID, messageID);
+				}
+				else if (roll > 960 && roll <= 1001) {
+					inventory.blowfish += 1;
+					stats.blowfish += 1;
+					api.sendMessage('🐡 | Bạn đã bắt được một con cá nóc *insert meme cá nóc ăn carot .-.*', threadID, messageID);
+				}
+				else if (roll == 1002) {
+					inventory.crocodiles += 1;
+					stats.crocodiles += 1;
+					api.sendMessage('🐊 | Bạn đã bắt được một con cá sấu đẹp trai hơn cả bạn 😮', threadID, messageID);
+				}
+				else if (roll == 1003) {
+					inventory.whales += 1;
+					stats.whales += 1;
+					api.sendMessage('🐋 | Bạn đã bắt được một con cá voi siêu to khổng lồ 😮', threadID, messageID);
+				}
+				else if (roll == 1004) {
+					inventory.dolphins += 1;
+					stats.dolphins += 1;
+					api.sendMessage('🐬 | Damn bro, tại sao bạn lại bắt một con cá heo dễ thương thế kia 😱', threadID, messageID);
+				}
+				else if (roll == 1006) {
+					inventory.squid += 1;
+					stats.squid += 1;
+					api.sendMessage('🦑 | Bạn đã bắt được một con mực 🤤', threadID, messageID);
+				}
+				else if (roll == 1007) {
+					inventory.sharks += 1;
+					stats.sharks += 1;
+					api.sendMessage('🦈 | Bạn đã bắt được một con cá mập nhưng không mập 😲', threadID, messageID);
+				}
+				await Fishing.updateLastTimeFishing(senderID, new Date());
+				await Fishing.updateInventory(senderID, inventory);
+				await Fishing.updateStats(senderID, stats);
 			}
 			else if (content.indexOf('bag') == 0) {
 				if (inventory.rod == 0) return api.sendMessage(`Có vẻ bạn chưa có cần câu để câu cá, bạn hãy mua trong shop!`, threadID, messageID);
 				let durability = ['50','70','100','130','200','400'];
 				let expToLevelup = ['1000','2000','4000','6000','8000'];
-				const total = inventory.trash + inventory.fish1 * 30 + inventory.fish2 * 100 + inventory.crabs * 250 + inventory.blowfish * 300 + inventory.crocodiles * 500 + inventory.whales * 750 + inventory.dolphins * 750 + inventory.squid * 1000 + inventory.sharks * 1000;
+				var total = inventory.trash + inventory.fish1 * 30 + inventory.fish2 * 100 + inventory.crabs * 250 + inventory.blowfish * 300 + inventory.crocodiles * 500 + inventory.whales * 750 + inventory.dolphins * 750 + inventory.squid * 1000 + inventory.sharks * 1000;
 				api.sendMessage(
 					"===== Inventory Của Bạn =====" +
 					`\n- item cần câu bạn đang sử dụng: level ${inventory.rod} - Durability: ${inventory.durability}/${durability[rodLevel]}` +
-					`\n- exp hiện đang có: ${inventory.exp}/${expToLevelup[rodLevel]}` +
+					`\n- exp hiện đang có: ${inventory.exp}/${expToLevelup[inventory.rod]}` +
 					"\n- sản lượng đang có trong túi:" +
 					"\n+ Rác | 🗑️: " + inventory.trash +
 					"\n+ Cá cỡ bình thường | 🐟: " + inventory.fish1 +
