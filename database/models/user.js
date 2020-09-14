@@ -13,9 +13,9 @@ module.exports = function({ sequelize, Sequelize }) {
 			unique: true
 		},
 		block: {
- 			type: Sequelize.BOOLEAN,
- 			defaultValue: false
- 		},
+			type: Sequelize.BOOLEAN,
+			defaultValue: false
+		},
 		point: {
 			type: Sequelize.BIGINT,
 			defaultValue: 0

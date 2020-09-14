@@ -32,7 +32,7 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 			switch (replyMessage.type) {
 				case "admin_settings": {
 					if (body == '1') {
-						api.sendMessage(`Admins hiện tại của bot là:${admins}\n=== Để đổi bạn hãy reply đoạn tin nhắn này với uid (hoặc uid1_uid2_...) bạn muốn đổi thành ===`, threadID, (err, info) => {
+						api.sendMessage(`Prefix hiện tại của bot là: ${config.prefix}\n=== Để đổi bạn hãy reply đoạn tin nhắn này với prefix bạn muốn đổi thành ===`, threadID, (err, info) => {
 							if (err) throw err;
 							__GLOBAL.reply.push({
 								type: "admin_prefix",
