@@ -94,8 +94,6 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 			return api.sendMessage(`Chào mừng bạn đã quay trở lại, ${name}`,threadID);
 		}
 
-		if (!contentMessage) return;
-
 	/* ================ Staff Commands ==================== */
 		//lấy shortcut
 		if (contentMessage.length !== -1) {
@@ -115,7 +113,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 		}
 
 		//sim on/off
-		if (__GLOBAL.simOn.includes(threadID)) return request(`https://simsumi.herokuapp.com/api?text=${encodeURIComponent(contentMessage.slice(prefix.length + 4, contentMessage.length))}&lang=vi`, (err, response, body) => api.sendMessage((JSON.parse(body).success != '') ? JSON.parse(body).success : 'Không có câu trả nời nào.', threadID, messageID)); 
+		if (__GLOBAL.simOn.includes(threadID)) request(`https://simsumi.herokuapp.com/api?text=${encodeURIComponent(contentMessage)}&lang=vi`, (err, response, body) => api.sendMessage((JSON.parse(body).success != '') ? JSON.parse(body).success : 'Không có câu trả lời nào.', threadID, messageID)); 
 
 		//lấy file cmds
 		var nocmdData = JSON.parse(fs.readFileSync(__dirname + "/src/cmds.json"));
@@ -827,15 +825,16 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 
 		//simsimi
 		if (contentMessage.indexOf(`${prefix}sim`) == 0) 
-			return request(`https://simsumi.herokuapp.com/api?text=${encodeURIComponent(contentMessage.slice(prefix.length + 4, contentMessage.length))}&lang=vi`, (err, response, body) => api.sendMessage((JSON.parse(body).success != '') ? JSON.parse(body).success : 'Không có câu trả nời nào.', threadID, messageID));
+			return request(`https://simsumi.herokuapp.com/api?text=${encodeURIComponent(contentMessage.slice(prefix.length + 4, contentMessage.length))}&lang=vi`, (err, response, body) => api.sendMessage((JSON.parse(body).success != '') ? JSON.parse(body).success : 'Không có câu trả lời nào.', threadID, messageID));
+		
 		//sim on
-		if (contentMessage.indexOf(`${prefix}sim on`) == 0) {
+		if (contentMessage == `${prefix}sim on`) {
 			__GLOBAL.simOn.push(threadID);
 			return api.sendMessage(`đã bật sim`, threadID);
 		}
 
 		//sim off
-		if (contentMessage.indexOf(`${prefix}sim on`) == 0) {
+		if (contentMessage == `${prefix}sim on`) {
 			__GLOBAL.simOn.splice(__GLOBAL.simOn.indexOf(threadID), 1);
 			return api.sendMessage(`đã tắt sim`, threadID);
 		}
