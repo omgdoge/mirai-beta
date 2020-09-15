@@ -67,7 +67,7 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 					let inventory = await Fishing.getInventory(confirmMessage.author);
 					let moneydb = await Economy.getMoney(confirmMessage.author);
 					if (inventory.rod >= 1) return api.sendMessage(`bạn đã có cần câu từ trước!`, threadID);
-					if (moneydb - 1000 <= 0) return api.sendMessage(`bạn không đủ điều kiện để mua, bạn còn thiếu ${1000 - moneydb} đô nữa`, threadID);
+					if (moneydb - 1000 < 0) return api.sendMessage(`bạn không đủ điều kiện để mua, bạn còn thiếu ${1000 - moneydb} đô nữa`, threadID);
 					inventory.durability = 50;
 					inventory.rod = 1;
 					api.sendMessage(`bạn đã mua thành công một cây cần câu mới, đây là bước khởi đầu trên con đường trở thành người câu cá giỏi nhất tại nơi đây!!\nGood Luck <3`, threadID);
