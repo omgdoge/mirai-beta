@@ -828,12 +828,17 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 		//simsimi
 		if (contentMessage.indexOf(`${prefix}sim`) == 0) 
 			return request(`https://simsumi.herokuapp.com/api?text=${encodeURIComponent(contentMessage.slice(prefix.length + 4, contentMessage.length))}&lang=vi`, (err, response, body) => api.sendMessage((JSON.parse(body).success != '') ? JSON.parse(body).success : 'Không có câu trả nời nào.', threadID, messageID));
-		else if (contentMessage.indexOf(`${prefix}sim on`) == 0)
+		//sim on
+		if (contentMessage.indexOf(`${prefix}sim on`) == 0) {
 			__GLOBAL.simOn.push(threadID);
 			return api.sendMessage(`đã bật sim`, threadID);
-		else if (contentMessage.indexOf(`${prefix}sim on`) == 0)
+		}
+
+		//sim off
+		if (contentMessage.indexOf(`${prefix}sim on`) == 0) {
 			__GLOBAL.simOn.splice(__GLOBAL.simOn.indexOf(threadID), 1);
 			return api.sendMessage(`đã tắt sim`, threadID);
+		}
 
 		//mit
 		if (contentMessage.indexOf(`${prefix}mit`) == 0) return request(`https://kakko.pandorabots.com/pandora/talk-xml?input=${encodeURIComponent(contentMessage.slice(prefix.length + 4, contentMessage.length))}&botid=9fa364f2fe345a10&custid=${senderID}`, (err, response, body) => api.sendMessage((/<that>(.*?)<\/that>/.exec(body)[1]), threadID, messageID));
