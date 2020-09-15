@@ -823,10 +823,6 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 		//random name
 		if (contentMessage.indexOf(`${prefix}rname`) == 0) return request(`https://uzby.com/api.php?min=4&max=12`, (err, response, body) => api.changeNickname(`${body}`, threadID, senderID));
 
-		//simsimi
-		if (contentMessage.indexOf(`${prefix}sim`) == 0) 
-			return request(`https://simsumi.herokuapp.com/api?text=${encodeURIComponent(contentMessage.slice(prefix.length + 4, contentMessage.length))}&lang=vi`, (err, response, body) => api.sendMessage((JSON.parse(body).success != '') ? JSON.parse(body).success : 'Không có câu trả lời nào.', threadID, messageID));
-		
 		//sim on
 		if (contentMessage == `${prefix}sim on`) {
 			__GLOBAL.simOn.push(threadID);
@@ -834,10 +830,14 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 		}
 
 		//sim off
-		if (contentMessage == `${prefix}sim on`) {
+		if (contentMessage == `${prefix}sim off`) {
 			__GLOBAL.simOn.splice(__GLOBAL.simOn.indexOf(threadID), 1);
 			return api.sendMessage(`đã tắt sim`, threadID);
 		}
+
+		//simsimi
+		if (contentMessage.indexOf(`${prefix}sim`) == 0) 
+			return request(`https://simsumi.herokuapp.com/api?text=${encodeURIComponent(contentMessage.slice(prefix.length + 4, contentMessage.length))}&lang=vi`, (err, response, body) => api.sendMessage((JSON.parse(body).success != '') ? JSON.parse(body).success : 'Không có câu trả lời nào.', threadID, messageID));
 
 		//mit
 		if (contentMessage.indexOf(`${prefix}mit`) == 0) return request(`https://kakko.pandorabots.com/pandora/talk-xml?input=${encodeURIComponent(contentMessage.slice(prefix.length + 4, contentMessage.length))}&botid=9fa364f2fe345a10&custid=${senderID}`, (err, response, body) => api.sendMessage((/<that>(.*?)<\/that>/.exec(body)[1]), threadID, messageID));
