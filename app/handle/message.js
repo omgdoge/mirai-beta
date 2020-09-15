@@ -102,7 +102,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 			let shortcut = JSON.parse(fs.readFileSync(__dirname + "/src/shortcut.json"));
 			if (shortcut.some(item => item.id == threadID)) {
 				let getThread = shortcut.find(item => item.id == threadID).shorts;
-				let output = "";
+				let output, random;
 				if (getThread.some(item => item.in == contentMessage)) {
 					let shortOut = getThread.find(item => item.in == contentMessage).out;
 					if (shortOut.indexOf(" | ") !== -1) {
@@ -113,6 +113,9 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 				}
 			}
 		}
+
+		//sim on/off
+		if (__GLOBAL.simOn.includes(threadID)) return request(`https://simsumi.herokuapp.com/api?text=${encodeURIComponent(contentMessage.slice(prefix.length + 4, contentMessage.length))}&lang=vi`, (err, response, body) => api.sendMessage((JSON.parse(body).success != '') ? JSON.parse(body).success : 'Không có câu trả nời nào.', threadID, messageID)); 
 
 		//lấy file cmds
 		var nocmdData = JSON.parse(fs.readFileSync(__dirname + "/src/cmds.json"));
@@ -823,13 +826,20 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 		if (contentMessage.indexOf(`${prefix}rname`) == 0) return request(`https://uzby.com/api.php?min=4&max=12`, (err, response, body) => api.changeNickname(`${body}`, threadID, senderID));
 
 		//simsimi
-		if (contentMessage.indexOf(`${prefix}sim`) == 0) return request(`https://simsumi.herokuapp.com/api?text=${encodeURIComponent(contentMessage.slice(prefix.length + 4, contentMessage.length))}&lang=vi`, (err, response, body) => api.sendMessage((JSON.parse(body).success != '') ? JSON.parse(body).success : 'Không có câu trả nời nào.', threadID, messageID));
+		if (contentMessage.indexOf(`${prefix}sim`) == 0) 
+			return request(`https://simsumi.herokuapp.com/api?text=${encodeURIComponent(contentMessage.slice(prefix.length + 4, contentMessage.length))}&lang=vi`, (err, response, body) => api.sendMessage((JSON.parse(body).success != '') ? JSON.parse(body).success : 'Không có câu trả nời nào.', threadID, messageID));
+		else if (contentMessage.indexOf(`${prefix}sim on`) == 0)
+			__GLOBAL.simOn.push(threadID);
+			return api.sendMessage(`đã bật sim`, threadID);
+		else if (contentMessage.indexOf(`${prefix}sim on`) == 0)
+			__GLOBAL.simOn.splice(__GLOBAL.simOn.indexOf(threadID), 1);
+			return api.sendMessage(`đã tắt sim`, threadID);
 
 		//mit
 		if (contentMessage.indexOf(`${prefix}mit`) == 0) return request(`https://kakko.pandorabots.com/pandora/talk-xml?input=${encodeURIComponent(contentMessage.slice(prefix.length + 4, contentMessage.length))}&botid=9fa364f2fe345a10&custid=${senderID}`, (err, response, body) => api.sendMessage((/<that>(.*?)<\/that>/.exec(body)[1]), threadID, messageID));
 
 		//penis
-		if (contentMessage.indexOf(`${prefix}penis`) == 0) return api.sendMessage(`8${'='.repeat(Math.floor(Math.random() * 30))}D`, threadID, messageID);
+		if (contentMessage.indexOf(`${prefix}penis`) == 0) return api.sendMessage(`8${'='.repeat(Math.floor(Math.random() * 10))}D`, threadID, messageID);
 
 		//reminder
 		if (contentMessage.indexOf(`${prefix}reminder`) == 0) {
@@ -1212,7 +1222,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 			const content = contentMessage.slice(prefix.length + 7, contentMessage.length);
 			let difficulty, answer, value1, value2;
 			const difficulties = ['baby', 'easy', 'medium', 'hard', 'extreme', 'impossible'];
-			(difficulties.some(item => content.indexOf(item) == 0)) ? difficulty = content : difficulty = difficulties[Math.floor(Math.random() * difficulties.length)];
+			(difficulties.some(item => content == item)) ? difficulty = content : difficulty = difficulties[Math.floor(Math.random() * difficulties.length)];
 			const operations = ['+', '-', '*'];
 			const maxValues = { baby: 10, easy: 50, medium: 100, hard: 500, extreme: 1000, impossible: Number.MAX_SAFE_INTEGER };
 			const maxMultiplyValues = { baby: 5, easy: 12, medium: 30, hard: 50, extreme: 100, impossible: Number.MAX_SAFE_INTEGE };
