@@ -3,13 +3,11 @@ module.exports = function({ models, api }) {
 	const Thread = models.use('thread');
 
 	async function createThread(threadID) {
-		if (!await Thread.findOne({ where: { threadID } })) {
-			let threadInfo = await getInfo(threadID);
-			let name = threadInfo.name;
-			let [ thread, created ] = await Thread.findOrCreate({ where: { threadID }, defaults: { name } });
-			if (created) return logger(threadID, 'New Thread');
-		}
-		else return;
+		if (await Thread.findOne({ where: { threadID } })) return;
+		let threadInfo = await getInfo(threadID);
+		let name = threadInfo.name;
+		let [ thread, created ] = await Thread.findOrCreate({ where: { threadID }, defaults: { name } });
+		if (created) return logger(`${name} - ${ThreadID}`, 'Nhóm mới');
 	}
 
 	async function getInfo(threadID) {

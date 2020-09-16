@@ -15,7 +15,8 @@ const __GLOBAL = new Object({
 	NSFWBlocked: new Array(),
 	afkUser: new Array(),
 	confirm: new Array(),
-	reply: new Array()
+	reply: new Array(),
+	simOn: new Array()
 });
 
 app.get("/", (request, response) => response.sendFile(__dirname + "/config/dbviewer/index.html"));

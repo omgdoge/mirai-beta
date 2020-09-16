@@ -373,6 +373,14 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 					__GLOBAL.reply.splice(indexOfReply, 1);
 					break;
 				}
+				case "media_video": {
+					const ytdl = require("ytdl-core");
+					if (!isNaN(body) || parseInt(body) <= 0 || parseInt(body) > 5 ) return api.sendMessage("chọn từ 1 đến 5", threadID);
+					var link = `https://www.youtube.com/watch?v=${replyMessage.link[body -1]}`
+					ytdl.getInfo(link, (err, info) => (info.length_seconds > 360) ? api.sendMessage("Độ dài video vượt quá mức cho phép, tối đa là 6 phút!", threadID, messageID) : '');
+					api.sendMessage(`đang đẩy lên uwu`, threadID);
+					return ytdl(link).pipe(fs.createWriteStream(__dirname + "/src/video.mp4")).on("close", () => api.sendMessage({attachment: fs.createReadStream(__dirname + "/src/video.mp4")}, threadID, () => fs.unlinkSync(__dirname + "/src/video.mp4"), messageID));
+				}
 			}
 			return;
 		}

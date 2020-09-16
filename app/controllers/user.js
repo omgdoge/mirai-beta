@@ -3,19 +3,17 @@ module.exports = function({ models, api }) {
 	const User = models.use('user');
 
 	async function createUser(uid) {
-		if (!await User.findOne({ where: { uid } })) {
-			let userInfo = await getInfo(uid);
-			var name = userInfo.name;
-			var inventory = {"fish1": 0,"fish2": 0,"trash": 0,"crabs": 0,"crocodiles": 0,"whales": 0,"dolphins": 0,"blowfish": 0,"squid": 0,"sharks": 0, "exp": 0, "rod": 0, "durability": 0};
-			var stats = {"casts": 0, ...inventory};
-			var [ user, created ] = await User.findOrCreate({ where : { uid }, defaults: { name, inventory, stats, reasonafk: '' }});
-			if (created) {
-				logger(`${name} - ${uid}`, 'New User');
-				return true;
-			}
-			else return false;
+		if (await User.findOne({ where: { uid } })) return;
+		let userInfo = await getInfo(uid);
+		var name = userInfo.name;
+		var inventory = {"fish1": 0,"fish2": 0,"trash": 0,"crabs": 0,"crocodiles": 0,"whales": 0,"dolphins": 0,"blowfish": 0,"squid": 0,"sharks": 0, "exp": 0, "rod": 0, "durability": 0};
+		var stats = {"casts": 0, ...inventory};
+		var [ user, created ] = await User.findOrCreate({ where : { uid }, defaults: { name, inventory, stats, reasonafk: '' }});
+		if (created) {
+			logger(`${name} - ${uid}`, 'Thành viên mới');
+			return true;
 		}
-		else return;
+		else return false;
 	}
 
 	async function getInfo(id) {
