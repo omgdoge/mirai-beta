@@ -55,14 +55,13 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 					}
 					else if (body == '3') {
 						let admins = '';
+						for (let i of config.admins) await User.createUser(i);
 						let users = await User.getUsers(['name', 'uid']);
-						users.forEach(i => {
-							if (config.admins.includes(i.uid)) admins += `\n- ${i.name}`;
-						})
+						for (let j of users) if (config.admins.includes(j.uid)) admins += `\n- ${j.name}`;
 						api.sendMessage(`Admins hiện tại của bot là:${admins}\n=== Để đổi bạn hãy reply đoạn tin nhắn này với uid (hoặc uid1_uid2_...) bạn muốn đổi thành ===`, threadID, (err, info) => {
 							if (err) throw err;
 							__GLOBAL.reply.push({
-								type: "admin_setAdmin",
+								type: "admin_setAdmins",
 								messageID: info.messageID,
 								target: parseInt(threadID),
 								author: senderID

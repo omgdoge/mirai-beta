@@ -243,7 +243,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 				else {
 					return mentions.forEach(id => {
 						id = parseInt(id);
-						if (__GLOBAL.threadBlocked.includes(id)) return api.sendMessage(`${event.mentions[id]} đã bị ban từ trước!`, threadID, messageID);
+						if (__GLOBAL.userBlocked.includes(id)) return api.sendMessage(`${event.mentions[id]} đã bị ban từ trước!`, threadID, messageID);
 						User.ban(id).then((success) => {
 							if (!success) return api.sendMessage("Không thể ban người này!", threadID, messageID);
 							api.sendMessage({
