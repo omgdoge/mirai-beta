@@ -1723,7 +1723,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 				if (inventory.rod == 0) return api.sendMessage(`Có vẻ bạn chưa có cần câu để câu cá, bạn hãy mua trong shop!`, threadID, messageID);
 				let lastTimeFishing = await Fishing.lastTimeFishing(senderID);
 				if (new Date() - new Date(lastTimeFishing) <= timeout[rodLevel]) api.sendMessage(`Bạn bị giới hạn thời gian, chỉ được câu cá mỗi ${timeout[rodLevel] / 1000} giây một lần`, threadID, messageID);
-				if (inventory.durability <= 0) return api.sendMessage(`cần câu của bạn có vẻ đã bị gãy, hãy vào shop và sửa lại cần câu để tiếp tục sử dụng`, threadID);
+				if (inventory.durability <= 0) return api.sendMessage(`Cần câu của bạn có vẻ đã bị gãy, hãy vào shop và sửa lại cần câu để tiếp tục sử dụng`, threadID);
 				let stats = await Fishing.getStats(senderID);
 				var roll = Math.floor(Math.random() * 1008);
 				inventory.exp += Math.floor(Math.random() * 500);
@@ -1752,7 +1752,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 						break;
 					}
 					api.sendMessage(
-						'== oh no, bạn gặp phải con quái vật của hồ này và có mức độ ' + difficulty + ', bạn có 15 giây để trả lời câu hỏi này và hạ ngục con quái vật này ==' +
+						'== Oh no, bạn gặp phải con quái vật của hồ này và có độ khó ' + difficulty + ', bạn có 15 giây để trả lời câu hỏi này và hạ ngục con quái vật này ==' +
 						`\n ${value1} ${operation} ${value2} = ?`,
 						threadID, (err, info) => __GLOBAL.reply.push({ type: "fishing_domath", messageID: info.messageID, target: parseInt(threadID), author: senderID, answer }),
 						messageID
@@ -1820,9 +1820,9 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 				var total = inventory.trash + inventory.fish1 * 30 + inventory.fish2 * 100 + inventory.crabs * 250 + inventory.blowfish * 300 + inventory.crocodiles * 500 + inventory.whales * 750 + inventory.dolphins * 750 + inventory.squid * 1000 + inventory.sharks * 1000;
 				api.sendMessage(
 					"===== Inventory Của Bạn =====" +
-					`\n- item cần câu bạn đang sử dụng: level ${inventory.rod} - Durability: ${inventory.durability}/${durability[rodLevel]}` +
-					`\n- exp hiện đang có: ${inventory.exp}/${expToLevelup[inventory.rod]}` +
-					"\n- sản lượng đang có trong túi:" +
+					`\n- Item cần câu bạn đang sử dụng: level ${inventory.rod} (Độ bền: ${inventory.durability}/${durability[rodLevel]})` +
+					`\n- Exp hiện đang có: ${inventory.exp}/${expToLevelup[inventory.rod]}` +
+					"\n- Sản lượng đang có trong túi:" +
 					"\n+ Rác | 🗑️: " + inventory.trash +
 					"\n+ Cá cỡ bình thường | 🐟: " + inventory.fish1 +
 					"\n+ Cá hiếm | 🐠: " + inventory.fish2 +

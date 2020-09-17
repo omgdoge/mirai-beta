@@ -31,8 +31,13 @@ module.exports = function({ models, api }) {
 		return (await User.findOne({ where: { threadID } })).destroy();
 	}
 
-	async function getThreads(attributes = [], where = {}) {
-		if (!Array.isArray(attributes) && typeof attributes == 'object') where = attributes;
+	async function getThreads(...data) {
+		var where, attributes;
+		for (let i of data) {
+			if (typeof i != 'object') throw 'Phải là 1 Array hoặc Object hoặc cả 2.';
+			if (Array.isArray(i)) attributes = i;
+			else where = i;
+		}
 		try {
 			return (await Thread.findAll({ where, attributes })).map(e => e.get({ plain: true }));
 		}

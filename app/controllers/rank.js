@@ -8,8 +8,8 @@ module.exports = function({ models, api }) {
 	}
 
 	async function updatePoint(uid, pointIncrement) {
-		let point = (await getPoint(uid)) + pointIncrement;
 		try {
+			let point = (await getPoint(uid)) + pointIncrement;
 			(await Rank.findOne({ where: { uid } })).update({ point });
 			return true;
 		}

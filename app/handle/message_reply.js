@@ -243,8 +243,8 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 				}
 				case "domath": {
 					const timeout = event.messageReply.timestamp + 15000;
-					if (event.timestamp - timeout >= 0) return api.sendMessage(`bạn đã hết thời gian để trả lời câu hỏi này!`, threadID);
-					(body == replyMessage.answer) ? api.sendMessage(`bing bong, kết quả của bạn hoàn toàn chính xác!! \n bạn đã trả lời câu hỏi này trong vòng ${(event.timestamp - event.messageReply.timestamp) / 1000} giây!`, threadID) : api.sendMessage(`ahh, có vẻ bạn đã trả lời sai, câu trả lời đúng là: ${replyMessage.answer}`, threadID);
+					if (event.timestamp - timeout >= 0) return api.sendMessage(`Bạn đã hết thời gian để trả lời câu hỏi này!`, threadID);
+					(body == replyMessage.answer) ? api.sendMessage(`Bing bong, kết quả của bạn hoàn toàn chính xác!\nBạn đã trả lời câu hỏi này trong vòng ${(event.timestamp - event.messageReply.timestamp) / 1000} giây!`, threadID) : api.sendMessage(`ahh, có vẻ bạn đã trả lời sai, câu trả lời đúng là: ${replyMessage.answer}`, threadID);
 					__GLOBAL.reply.splice(indexOfReply, 1);
 					break;
 				}
@@ -255,11 +255,11 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 					let expToLevelup = ['1000','2000','4000','6000','8000'];
 					
 					let moneyToFix = Math.floor(Math.random() * (1000 - 300)) + 300;
-					if (body == 1) return api.sendMessage(`bạn cần ${expToLevelup[inventory.rod]} exp và ${moneyToUpgrade[inventory.rod]} đô để nâng cấp từ level ${inventory.rod} lên level ${inventory.rod + 1}\nreaction 👍 để đồng ý hoặc chọn bất cứ reaction nào để huỷ!`, threadID, (err, info) => __GLOBAL.confirm.push({ type: "fishing_upgradeRod", messageID: info.messageID, author: senderID, exp: expToLevelup[inventory.rod], money: moneyToUpgrade[inventory.rod], durability: durability[inventory.rod] }));
-					if (body == 2) return api.sendMessage(`để sửa chữa loại cần câu này, bạn cần ${moneyToFix} đô, bạn đồng ý chứ?\nreaction 👍 để đồng ý hoặc chọn bất cứ reaction nào để huỷ`, threadID, (err, info) => __GLOBAL.confirm.push({ type: "fishing_fixRod", messageID: info.messageID, author: senderID, moneyToFix, durability: durability[inventory.rod] }));
-					if (body == 3) return api.sendMessage('để mua cần câu loại 1, bạn cần tối thiếu 1000 đô, bạn đồng ý chứ?\nreaction 👍 để đồng ý hoặc chọn bất cứ reaction nào để huỷ', threadID, (err, info) => __GLOBAL.confirm.push({ type: "fishing_buyRod", messageID: info.messageID, author: senderID }));
-					if (body == 4) return api.sendMessage('coming soon!', threadID);
-					if (body == 5) return api.sendMessage('coming soon!', threadID);
+					if (body == 1) return api.sendMessage(`Bạn cần ${expToLevelup[inventory.rod]} exp và ${moneyToUpgrade[inventory.rod]} đô để nâng cấp từ level ${inventory.rod} lên level ${inventory.rod + 1}\nReaction 👍 để đồng ý hoặc chọn bất cứ reaction nào để huỷ!`, threadID, (err, info) => __GLOBAL.confirm.push({ type: "fishing_upgradeRod", messageID: info.messageID, author: senderID, exp: expToLevelup[inventory.rod], money: moneyToUpgrade[inventory.rod], durability: durability[inventory.rod] }));
+					if (body == 2) return api.sendMessage(`Để sửa chữa loại cần câu này, bạn cần ${moneyToFix} đô, bạn đồng ý chứ?\nReaction 👍 để đồng ý hoặc chọn bất cứ reaction nào để huỷ`, threadID, (err, info) => __GLOBAL.confirm.push({ type: "fishing_fixRod", messageID: info.messageID, author: senderID, moneyToFix, durability: durability[inventory.rod] }));
+					if (body == 3) return api.sendMessage('Để mua cần câu loại 1, bạn cần tối thiếu 1000 đô, bạn đồng ý chứ?\nReaction 👍 để đồng ý hoặc chọn bất cứ reaction nào để huỷ', threadID, (err, info) => __GLOBAL.confirm.push({ type: "fishing_buyRod", messageID: info.messageID, author: senderID }));
+					if (body == 4) return api.sendMessage('Coming soon!', threadID);
+					if (body == 5) return api.sendMessage('Coming soon!', threadID);
 					break;
 				}
 				case "fishing_domath": {
@@ -323,7 +323,7 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 							inventory.sharks -= valueSteal;
 							typeSteal = "cá mập";
 						}
-						api.sendMessage(`${(event.timestamp - timeout >= 0) ? "bạn đã hết thời gian cho phép để trả lời câu hỏi này" : "bạn đã trả lời sai câu hỏi này"} và bị quái vật cướp: ${typeSteal} với số lượng là ${valueSteal} `, threadID);
+						api.sendMessage(`${(event.timestamp - timeout >= 0) ? "Bạn đã hết thời gian cho phép để trả lời câu hỏi này" : "Bạn đã trả lời sai câu hỏi này"} và bị quái vật cướp ${valueSteal} ${typeSteal}.`, threadID);
 					}
 					if (parseInt(body) == parseInt(replyMessage.answer)) {
 						if (roll <= 400) {
@@ -366,7 +366,7 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 							inventory.sharks += valueSteal;
 							typeSteal = "cá mập";
 						}
-						api.sendMessage(`bing bong, kết quả của bạn hoàn toàn chính xác và đã hạ ngục được quái vật. Phần thưởng của bạn là: \n - ${typeSteal} với số lượng: ${valueSteal}\n - exp: ${stats.exp}\n\n bạn đã trả lời câu hỏi này trong vòng ${(event.timestamp - event.messageReply.timestamp) / 1000} giây!`, threadID);
+						api.sendMessage(`Bing bong, kết quả của bạn hoàn toàn chính xác và đã hạ ngục được quái vật. Phần thưởng của bạn là:\n- ${valueSteal} ${typeSteal}\n- Exp: ${stats.exp}\n\nBạn đã trả lời câu hỏi này trong vòng ${(event.timestamp - event.messageReply.timestamp) / 1000} giây!`, threadID);
 					}
 					await Fishing.updateInventory(senderID, inventory);
 					await Fishing.updateStats(senderID, stats);

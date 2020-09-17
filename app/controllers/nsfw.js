@@ -9,14 +9,20 @@ module.exports = function({ models, api, Economy }) {
 	}
 
 	async function setNSFW(uid, nsfwTier) {
-		let nsfw = await Nsfw.findOne({ where: { uid } });
-		if (nsfwTier == 0) return nsfw.update({ nsfwTier, hentaiLeft: 2, pornLeft: 1 });
-		else if (nsfwTier == 1) return nsfw.update({ nsfwTier, hentaiLeft: 4, pornLeft: 2 });
-		else if (nsfwTier == 2) return nsfw.update({ nsfwTier, hentaiLeft: 8, pornLeft: 4 });
-		else if (nsfwTier == 3) return nsfw.update({ nsfwTier, hentaiLeft: 12, pornLeft: 6 });
-		else if (nsfwTier == 4) return nsfw.update({ nsfwTier, hentaiLeft: 16, pornLeft: 8 });
-		else if (nsfwTier == 5) return nsfw.update({ nsfwTier, hentaiLeft: -1, pornLeft: 10 });
-		else if (nsfwTier == -1) return nsfw.update({ nsfwTier, hentaiLeft: -1, pornLeft: -1 }); //God Mode
+		try {
+			let nsfw = await Nsfw.findOne({ where: { uid } });
+			if (nsfwTier == 0) return nsfw.update({ nsfwTier, hentaiLeft: 2, pornLeft: 1 });
+			else if (nsfwTier == 1) return nsfw.update({ nsfwTier, hentaiLeft: 4, pornLeft: 2 });
+			else if (nsfwTier == 2) return nsfw.update({ nsfwTier, hentaiLeft: 8, pornLeft: 4 });
+			else if (nsfwTier == 3) return nsfw.update({ nsfwTier, hentaiLeft: 12, pornLeft: 6 });
+			else if (nsfwTier == 4) return nsfw.update({ nsfwTier, hentaiLeft: 16, pornLeft: 8 });
+			else if (nsfwTier == 5) return nsfw.update({ nsfwTier, hentaiLeft: -1, pornLeft: 10 });
+			else if (nsfwTier == -1) return nsfw.update({ nsfwTier, hentaiLeft: -1, pornLeft: -1 }); //God Mode
+		}
+		catch (err) {
+			logger(err, 2);
+			return false;
+		}
 	}
 
 	async function buyNSFW(uid) {
@@ -45,13 +51,25 @@ module.exports = function({ models, api, Economy }) {
 	}
 
 	async function subtractHentai(uid) {
-		var useLeft = await hentaiUseLeft(uid);
-		return (await Nsfw.findOne({ where: { uid } })).update({ hentaiLeft: useLeft - 1 });
+		try {
+			var useLeft = await hentaiUseLeft(uid);
+			return (await Nsfw.findOne({ where: { uid } })).update({ hentaiLeft: useLeft - 1 });
+		}
+		catch (err) {
+			logger(err, 2);
+			return false;
+		}
 	}
 
 	async function subtractPorn(uid) {
-		var useLeft = await pornUseLeft(uid);
-		return (await Nsfw.findOne({ where: { uid } })).update({ pornLeft: useLeft - 1 });
+		try {
+			var useLeft = await pornUseLeft(uid);
+			return (await Nsfw.findOne({ where: { uid } })).update({ pornLeft: useLeft - 1 });
+		}
+		catch (err) {
+			logger(err, 2);
+			return false;
+		}
 	}
 
 	function resetNSFW() {
