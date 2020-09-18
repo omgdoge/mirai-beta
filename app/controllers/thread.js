@@ -18,7 +18,7 @@ module.exports = function({ models, api }) {
 
 	async function setThread(threadID, options = {}) {
 		try {
-			(await User.findOne({ where: { threadID } })).update(options);
+			(await Thread.findOne({ where: { threadID } })).update(options);
 			return true;
 		}
 		catch (err) {
@@ -28,7 +28,7 @@ module.exports = function({ models, api }) {
 	}
 
 	async function delThread(threadID) {
-		return (await User.findOne({ where: { threadID } })).destroy();
+		return (await Thread.findOne({ where: { threadID } })).destroy();
 	}
 
 	async function getThreads(...data) {
