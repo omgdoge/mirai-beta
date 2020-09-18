@@ -6,12 +6,12 @@ module.exports = function({ api, config, __GLOBAL, User, Thread }) {
 		switch (event.logMessageType) {
 			case "log:subscribe":
 				if (event.logMessageData.addedParticipants.some(i => i.userFbId == api.getCurrentUserID())) {
-					Thread.createThread(event.threadID);
-					api.sendMessage(`Đã kết nối thành công!\nVui lòng sử dụng ${config.prefix}help để biết các lệnh của bot >w<`, event.threadID);
+					await Thread.createThread(event.threadID);
 					api.changeNickname(config.botName, event.threadID, api.getCurrentUserID());
+					api.sendMessage(`Đã kết nối thành công!\nVui lòng sử dụng ${config.prefix}help để biết các lệnh của bot >w<`, event.threadID);
 					let deleteMe = event.logMessageData.addedParticipants.find(i => i.userFbId == api.getCurrentUserID());
 					event.logMessageData.addedParticipants.splice(deleteMe, 1);
-					await new Promise(resolve => setTimeout(resolve, 1000));
+					await new Promise(resolve => setTimeout(resolve, 500));
 				}
 				var mentions = [], nameArray = [], memLength = [];
 				for (var i = 0; i < event.logMessageData.addedParticipants.length; i++) {
@@ -37,7 +37,7 @@ module.exports = function({ api, config, __GLOBAL, User, Thread }) {
 			case "log:thread-color":
 				break;
 			case "log:thread-name":
-				Thread.updateName(event.threadID, threadName);
+				await Thread.updateName(event.threadID, threadName);
 				break;
 		}
 	}

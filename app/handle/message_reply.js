@@ -79,29 +79,7 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 							});
 						});
 					}
-					else if (body == '5') {
-						api.sendMessage(`Giờ nhắc ngủ của bot hiện đang là: ${config.sleeptime}\n=== Để đổi bạn hãy reply đoạn tin nhắn này kèm với thời gian bạn muốn thay, lưu ý theo dạng 24h, ví dụ: 22:00 ===`, threadID, (err, info) => {
-							if (err) throw err;
-							__GLOBAL.reply.push({
-								type: "admin_setSleepTime",
-								messageID: info.messageID,
-								target: parseInt(threadID),
-								author: senderID
-							});
-						});
-					}
 					else if (body == '6') {
-						api.sendMessage(`Giờ nhắc dậy của bot hiện đang là: ${config.waketime}\n=== Để đổi bạn hãy reply đoạn tin nhắn này kèm với thời gian bạn muốn thay, lưu ý theo dạng 24h, ví dụ: 07:00 ===`, threadID, (err, info) => {
-							if (err) throw err;
-							__GLOBAL.reply.push({
-								type: "admin_setWakeTime",
-								messageID: info.messageID,
-								target: parseInt(threadID),
-								author: senderID
-							});
-						});
-					}
-					else if (body == '7') {
 						const semver = require('semver');
 						axios.get('https://raw.githubusercontent.com/roxtigger2003/mirai/master/package.json').then((res) => {
 							var local = JSON.parse(fs.readFileSync('./package.json')).version;
@@ -112,19 +90,19 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 							else api.sendMessage('Bạn đang sử dụng bản mới nhất!', threadID);
 						}).catch(err => api.sendMessage('Không thể kiểm tra cập nhật!', threadID));
 					}
-					else if (body == '8') {
+					else if (body == '7') {
 						var data = await User.getUsers(['name', 'uid'], {block: true});
 						var userBlockMsg = "";
 						data.forEach(user => userBlockMsg += `\n${user.name} - ${user.uid}`);
 						api.sendMessage((userBlockMsg) ? `🛠 | Đây là danh sách các user bị ban:${userBlockMsg}` : 'Chưa có user nào bị bạn cấm!', threadID, messageID);
 					}
-					else if (body == '9') {
+					else if (body == '8') {
 						var data = await Thread.getThreads(['name', 'threadID'], {block: true});
 						var threadBlockMsg = "";
 						data.forEach(thread => threadBlockMsg += `\n${thread.name} - ${thread.threadID}`);
 						api.sendMessage((threadBlockMsg) ? `🛠 | Đây là danh sách các nhóm bị ban:${threadBlockMsg}` : 'Chưa có nhóm nào bị bạn cấm!', threadID, messageID);
 					}
-					else if (body == '10') {
+					else if (body == '9') {
 						api.sendMessage(`Nhập thông báo bạn muốn gửi cho toàn bộ`, threadID, (err, info) => {
 							if (err) throw err;
 							__GLOBAL.reply.push({
@@ -135,7 +113,7 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 							});
 						});
 					}
-					else if (body == '11') {
+					else if (body == '10') {
 						api.sendMessage(`Nhập tên user cần tìm kiếm`, threadID, (err, info) => {
 							if (err) throw err;
 							__GLOBAL.reply.push({
@@ -146,7 +124,7 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 							});
 						});
 					}
-					else if (body == '12') {
+					else if (body == '11') {
 						api.sendMessage(`Nhập tên nhóm cần tìm kiếm`, threadID, (err, info) => {
 							if (err) throw err;
 							__GLOBAL.reply.push({
@@ -157,7 +135,7 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 							});
 						});
 					}
-					else if (body == '13') api.sendMessage(`Tiến hành áp dụng thay đổi, vui lòng đợi một chút để bot đồng bộ!`, threadID, () => cmd.run(restart));
+					else if (body == '12') api.sendMessage(`Tiến hành áp dụng thay đổi, vui lòng đợi một chút để bot đồng bộ!`, threadID, () => cmd.run(restart));
  					else {
 						let array = ['Hình như bạn đang chơi đồ?', 'Đồ ngon quá à bạn?', 'Bú gì ngon vậy?'];
 						api.sendMessage(array[Math.floor(Math.random() * array.length)], threadID);
@@ -186,18 +164,6 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 					if (body != 'on' && body != 'off') return api.sendMessage(`Chỉ có thể là 'on' hoặc 'off'.`, threadID);
 					writeENV("REFRESHING", body);
 					api.sendMessage(`🛠 | Đã đổi khởi động lại của bot thành: ${body}`, threadID);
-					__GLOBAL.reply.splice(indexOfReply, 1);
-					break;
-				}
-				case "admin_setSleepTime": {
-					writeENV("SLEEPTIME", body);
-					api.sendMessage(`🛠 | Đã đổi giờ nhắc ngủ của bot thành: ${body}`, threadID);
-					__GLOBAL.reply.splice(indexOfReply, 1);
-					break;
-				}
-				case "admin_setWakeTime": {
-					writeENV("WAKETIME", body);
-					api.sendMessage(`🛠 | Đã đổi giờ nhắc dậy của bot thành: ${body}`, threadID);
 					__GLOBAL.reply.splice(indexOfReply, 1);
 					break;
 				}
@@ -365,7 +331,7 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 							inventory.sharks += valueSteal;
 							typeSteal = "cá mập";
 						}
-						api.sendMessage(`Bing bong, kết quả của bạn hoàn toàn chính xác và đã hạ ngục được quái vật. Phần thưởng của bạn là:\n- ${valueSteal} ${typeSteal}\n- Exp: ${stats.exp}\n\nBạn đã trả lời câu hỏi này trong vòng ${(event.timestamp - event.messageReply.timestamp) / 1000} giây!`, threadID);
+						api.sendMessage(`Bing bong, kết quả của bạn hoàn toàn chính xác và đã hạ ngục được quái vật. Phần thưởng của bạn là:\n- ${valueSteal} ${typeSteal}\n- Exp: ${stats.exp}\n\nBạn đã trả lời câu hỏi này trong ${(event.timestamp - event.messageReply.timestamp) / 1000} giây!`, threadID);
 					}
 					await Fishing.updateInventory(senderID, inventory);
 					await Fishing.updateStats(senderID, stats);

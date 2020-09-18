@@ -10,48 +10,15 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 	const logger = require("../modules/log.js");
 	var resetNSFW = false;
 
-	/* ================ CronJob ==================== */
-	if (!fs.existsSync(__dirname + "/src/groupID.json")) {
-		var data = [];
-		api.getThreadList(100, null, ["INBOX"], function(err, list) {
-			if (err) throw err;
-			list.forEach(item => (item.isGroup == true) ? data.push(item.threadID) : '');
-			fs.writeFile(__dirname + "/src/groupID.json", JSON.stringify(data), err => {
-				if (err) throw err;
-				logger("Tạo file groupID mới thành công!");
-			});
-		});
-	}
-	else {
-		fs.readFile(__dirname + "/src/groupID.json", "utf-8", (err, data) => {
-			if (err) throw err;
-			var groupids = JSON.parse(data);
-			if (!fs.existsSync(__dirname + "/src/listThread.json")) fs.writeFile(__dirname + "/src/listThread.json", JSON.stringify({ wake: [], sleep: [] }), err => logger("Tạo file listThread mới thành công!"));
-			setInterval(() => {
-				var oldData = JSON.parse(fs.readFileSync(__dirname + "/src/listThread.json"));
-				var timer = moment.tz("Asia/Ho_Chi_Minh").format("HH:mm");
-				groupids.forEach(item => {
-					while (timer == sleeptime && !oldData.sleep.includes(item)) {
-						api.sendMessage(`Tới giờ ngủ rồi đấy nii-chan, おやすみなさい!`, item);
-						oldData.sleep.push(item);
-						break;
-					}
-					while (timer == waketime && !oldData.wake.includes(item)) {
-						api.sendMessage(`おはようございます các nii-chan uwu`, item);
-						oldData.wake.push(item);
-						break;
-					}
-					fs.writeFileSync(__dirname + "/src/listThread.json", JSON.stringify(oldData));
-				});
-				if (timer == "23:05" || timer == "07:05") fs.writeFileSync(__dirname + "/src/listThread.json", JSON.stringify({ wake: [], sleep: [] }));
-				if (timer == "00:00")
-					if (resetNSFW == false) {
-						resetNSFW = true;
-						Nsfw.resetNSFW();
-					}
-			}, 1000);
-		});
-	}
+	setInterval(() => {
+		var timer = moment.tz("Asia/Ho_Chi_Minh").format("HH:mm");
+		if (timer == "00:00") {
+			if (resetNSFW == false) {
+				resetNSFW = true;
+				Nsfw.resetNSFW();
+			}
+		}
+	}, 1000);
 
 	if (!fs.existsSync(__dirname + "/src/shortcut.json")) {
 		var template = [];
@@ -204,16 +171,14 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 					'\n[2] Tên của bot.' +
 					'\n[3] Danh sách admins.' +
 					'\n[4] Khởi động lại.' +
-					'\n[5] Giờ nhắc ngủ.' +
-					'\n[6] Giờ nhắc dậy.' +
 					'\n=== Quản Lý Hoạt Động ===' +
-					'\n[7] Kiểm tra cập nhật.' +
-					'\n[8] Lấy danh sách các user bị ban.' +
-					'\n[9] Lấy danh sách các nhóm bị ban.' +
-					'\n[10] Gửi thông báo đến toàn bộ nhóm ' +
-					'\n[11] Tìm kiếm uid qua tên user.' +
-					'\n[12] Tìm kiếm threadID qua tên nhóm.' +
-					'\n[13] Áp dụng toàn bộ cài đặt.' +
+					'\n[6] Kiểm tra cập nhật.' +
+					'\n[7] Lấy danh sách các user bị ban.' +
+					'\n[8] Lấy danh sách các nhóm bị ban.' +
+					'\n[9] Gửi thông báo đến toàn bộ nhóm ' +
+					'\n[10] Tìm kiếm uid qua tên user.' +
+					'\n[11] Tìm kiếm threadID qua tên nhóm.' +
+					'\n[12] Áp dụng toàn bộ cài đặt.' +
 					'\n-> Để chọn bạn hãy reply tin nhắn này kèm với số bạn muốn <-',
 					threadID, (err, info) => {
 						if (err) throw err;
@@ -379,7 +344,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
  					if (isNaN(arg)) return api.sendMessage("Không phải là ID.", threadID, messageID);
  					let success = await User.createUser(arg);
  					let name = await User.getName(arg);
- 					return (success) ? api.sendMessage("Đã thêm " + name + " vào database.", threadID, messageID) : api.sendMessage(name + " đã có sẵn trong database.", threadID, messageID);
+ 					(success) ? api.sendMessage("Đã thêm " + name + " vào database.", threadID, messageID) : api.sendMessage(name + " đã có sẵn trong database.", threadID, messageID);
  				}
  				else {
  					for (let i of mentions) {
@@ -387,8 +352,8 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
  						let name = await User.getName(i);
  						(success) ? api.sendMessage("Đã thêm " + name + " vào database.", threadID, messageID) : api.sendMessage(name + " đã có sẵn trong database.", threadID, messageID);
  					}
- 					return;
  				}
+ 				return;
  			}
 			else if (content.indexOf("addUser") == 0) return api.addUserToGroup(arg, threadID);
 			else if (content.indexOf("restart") == 0) return api.sendMessage(`Hệ thống restart khẩn ngay bây giờ!`, threadID, () => require("node-cmd").run("pm2 restart 0"), messageID);
