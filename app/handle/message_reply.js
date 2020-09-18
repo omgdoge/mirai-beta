@@ -116,13 +116,13 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 						var data = await User.getUsers(['name', 'uid'], {block: true});
 						var userBlockMsg = "";
 						data.forEach(user => userBlockMsg += `\n${user.name} - ${user.uid}`);
-						api.sendMessage((userBlockMsg) ? `🛠 | Đây là danh sách các user bị block:${userBlockMsg}` : 'Chưa có user nào bị bạn cấm!', threadID, messageID);
+						api.sendMessage((userBlockMsg) ? `🛠 | Đây là danh sách các user bị ban:${userBlockMsg}` : 'Chưa có user nào bị bạn cấm!', threadID, messageID);
 					}
 					else if (body == '9') {
 						var data = await Thread.getThreads(['name', 'threadID'], {block: true});
 						var threadBlockMsg = "";
 						data.forEach(thread => threadBlockMsg += `\n${thread.name} - ${thread.threadID}`);
-						api.sendMessage((threadBlockMsg) ? `🛠 | Đây là danh sách các nhóm bị block:${threadBlockMsg}` : 'Chưa có nhóm nào bị bạn cấm!', threadID, messageID);
+						api.sendMessage((threadBlockMsg) ? `🛠 | Đây là danh sách các nhóm bị ban:${threadBlockMsg}` : 'Chưa có nhóm nào bị bạn cấm!', threadID, messageID);
 					}
 					else if (body == '10') {
 						api.sendMessage(`Nhập thông báo bạn muốn gửi cho toàn bộ`, threadID, (err, info) => {
