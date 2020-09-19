@@ -886,20 +886,18 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 		//giveaway
 		if (contentMessage.indexOf(`${prefix}ga`) == 0) {
 			var content = contentMessage.slice(prefix.length + 3, contentMessage.length);
-			api.getThreadInfo(threadID, function(err, info) {
-				(async () => {
-					if (err) return api.sendMessage(`Đã xảy ra lỗi không mong muốn`, threadID, messageID);
-					let winner = info.participantIDs[Math.floor(Math.random() * info.participantIDs.length)];
-					let userInfo = await User.getInfo(winner);
-					var name = userInfo.name;
-					api.sendMessage({
-						body: `Yahoo ${name}, bạn đã thắng giveaway! phần thưởng là: "${content}" 🥳🥳.`,
-						mentions: [{
-							tag: name,
-							id: winner
-						}]
-					}, threadID, messageID);
-				})();
+			api.getThreadInfo(threadID,async function(err, info) {
+				if (err) return api.sendMessage(`Đã xảy ra lỗi không mong muốn`, threadID, messageID);
+				let winner = info.participantIDs[Math.floor(Math.random() * info.participantIDs.length)];
+				let userInfo = await User.getInfo(winner);
+				var name = userInfo.name;
+				api.sendMessage({
+					body: `Yahoo ${name}, bạn đã thắng giveaway! phần thưởng là: "${content}" 🥳🥳.`,
+					mentions: [{
+						tag: name,
+						id: winner
+					}]
+				}, threadID, messageID);
 			});
 			return;
 		}
@@ -1656,55 +1654,45 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 		}
 
 		// steal
-		if (contentMessage == `${prefix}steal` && senderID != api.getCurrentUserID()) {
+		if (contentMessage == `${prefix}steal`) {
 			let cooldown = 1800000;
-				Economy.getStealTime(senderID).then(function(lastSteal) {
+			Economy.getStealTime(senderID).then(async function(lastSteal) {
 				if (lastSteal !== null && cooldown - (Date.now() - lastSteal) > 0) {
 					let time = ms(cooldown - (Date.now() - lastSteal));
 					api.sendMessage("Bạn vừa ăn trộm, để tránh bị lên phường vui lòng quay lại sau: " + time.minutes + " phút " + time.seconds + " giây ", threadID, messageID);
 				}
 				else {
-					api.getThreadInfo(threadID, function(err, info) {
-						if (err) throw err;
-						let victim = info.participantIDs[Math.floor(Math.random() * info.participantIDs.length)];
-						User.createUser(victim);
-						User.getName(victim).then(nameV => {
-							User.getName(senderID).then(name => {
-								if (victim == api.getCurrentUserID() && senderID == victim) return api.sendMessage("Cần lao vi tiên thủ\nNăng cán dĩ đắc thực\nVô vi thực đầu buồi\nThực cứt thế cho nhanh", threadID, messageID);
-								else if (senderID != victim && victim != api.getCurrentUserID()) {
-									var route = Math.floor(Math.random() * 5);
-									if (route > 1 || route == 0) {
-										Economy.getMoney(victim).then(moneydb => {
-											var money = Math.floor(Math.random() * 200) + 1;
-											if (moneydb <= 0 || moneydb == undefined) return api.sendMessage("Bạn đen vl, trộm được mỗi cục cứt xD", threadID, messageID);
-											else if (moneydb >= money) return api.sendMessage(`Bạn vừa trộm ${money} đô từ 1 thành viên trong nhóm`, threadID, () => {
-												Economy.subtractMoney(victim, money);
-												Economy.addMoney(senderID, parseInt(money));
-											}, messageID);
-											else if (moneydb < money) return api.sendMessage(`Bạn vừa trộm TẤT CẢ ${moneydb} đô của 1 thành viên trong nhóm`, threadID, () => {
-												Economy.subtractMoney(victim, parseInt(moneydb));
-												Economy.addMoney(senderID, parseInt(moneydb));
-											}, messageID);
-											else return api.sendMessage("Bạn đen vl, trộm được cục cứt xD", threadID, messageID);
-										});
-									}
-									else if (route == 1) {
-										Economy.getMoney(senderID).then(moneydb => {
-											if (moneydb <= 0) return api.sendMessage("Cần lao vi tiên thủ\nNăng cán dĩ đắc thực\nVô vi thực đầu buồi\nThực cứt thế cho nhanh", threadID, messageID);
-											else if (moneydb > 0) return api.sendMessage(`Bạn bị tóm vì tội ăn trộm, mất ${moneydb} đô`, threadID, () => api.sendMessage({body: `Chúc mừng anh hùng ${nameV} tóm gọn tên trộm ${name} và đã nhận được tiền thưởng ${Math.floor(moneydb / 2)} đô`, mentions: [{ tag: nameV, id: victim}, {tag: name, id: senderID}]}, threadID, () => {
-												Economy.subtractMoney(senderID, moneydb);
-												Economy.addMoney(victim, parseInt(Math.floor(moneydb / 2)));
-											}), messageID);
-										});
-									}
-								}
-							});
-						});
-					});
 					Economy.updateStealTime(senderID, Date.now());
-				};
-			})
-			return;
+					let all = await User.getUsers(['uid']);
+					let victim = all[Math.floor(Math.random() * all.length)].uid;
+					let nameVictim = await User.getName(victim);
+					if (victim == api.getCurrentUserID() && senderID == victim) return api.sendMessage("Bạn đã quay vào ô mất lượt", threadID, messageID);
+					var route = Math.floor(Math.random() * 5);
+					if (route > 1 || route == 0) {
+						let moneydb = await Economy.getMoney(victim);
+						var money = Math.floor(Math.random() * 200) + 1;
+						if (moneydb <= 0 || moneydb == undefined) return api.sendMessage("Bạn trộm trúng ngay thằng nhà nghèo chả có đồng nào", threadID, messageID);
+						else if (moneydb >= money) return api.sendMessage(`Bạn vừa trộm ${money} đô từ 1 thành viên trong nhóm`, threadID, () => {
+							Economy.subtractMoney(victim, money);
+							Economy.addMoney(senderID, parseInt(money));
+						}, messageID);
+						else if (moneydb < money) return api.sendMessage(`Bạn vừa trộm TẤT CẢ ${moneydb} đô của 1 thành viên trong nhóm`, threadID, () => {
+							Economy.subtractMoney(victim, parseInt(moneydb));
+							Economy.addMoney(senderID, parseInt(moneydb));
+						}, messageID);
+						else return api.sendMessage("Bạn đen vl, trộm được cục cứt xD", threadID, messageID);
+					}
+					else if (route == 1) {
+						Economy.getMoney(senderID).then(moneydb => {
+							if (moneydb <= 0) return api.sendMessage("Cần lao vi tiên thủ\nNăng cán dĩ đắc thực\nVô vi thực đầu buồi\nThực cứt thế cho nhanh", threadID, messageID);
+							else if (moneydb > 0) return api.sendMessage(`Bạn bị tóm vì tội ăn trộm, mất ${moneydb} đô`, threadID, () => api.sendMessage({body: `Chúc mừng anh hùng ${nameV} tóm gọn tên trộm ${name} và đã nhận được tiền thưởng ${Math.floor(moneydb / 2)} đô`, mentions: [{ tag: nameV, id: victim}, {tag: name, id: senderID}]}, threadID, () => {
+								Economy.subtractMoney(senderID, moneydb);
+								Economy.addMoney(victim, parseInt(Math.floor(moneydb / 2)));
+							}), messageID);
+						});
+					}
+				}
+			});
 		}
 
 		//fishing
@@ -1716,7 +1704,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 			if (!content) {
 				if (inventory.rod == 0) return api.sendMessage(`Có vẻ bạn chưa có cần câu để câu cá, bạn hãy mua trong shop!`, threadID, messageID);
 				let lastTimeFishing = await Fishing.lastTimeFishing(senderID);
-				if (new Date() - new Date(lastTimeFishing) <= timeout[rodLevel]) api.sendMessage(`Bạn bị giới hạn thời gian, chỉ được câu cá mỗi ${timeout[rodLevel] / 1000} giây một lần`, threadID, messageID);
+				if (new Date() - new Date(lastTimeFishing) <= timeout[rodLevel]) return api.sendMessage(`Bạn bị giới hạn thời gian, chỉ được câu cá mỗi ${timeout[rodLevel] / 1000} giây một lần`, threadID, messageID);
 				if (inventory.durability <= 0) return api.sendMessage(`Cần câu của bạn có vẻ đã bị gãy, hãy vào shop và sửa lại cần câu để tiếp tục sử dụng`, threadID);
 				let stats = await Fishing.getStats(senderID);
 				var roll = Math.floor(Math.random() * 1008);
@@ -1745,7 +1733,8 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 						answer = value1 * value2;
 						break;
 					}
-					api.sendMessage(
+					await Fishing.updateLastTimeFishing(senderID, new Date());
+					return api.sendMessage(
 						'== Oh no, bạn gặp phải con quái vật của hồ này và có độ khó ' + difficulty + ', bạn có 15 giây để trả lời câu hỏi này và hạ ngục con quái vật này ==' +
 						`\n ${value1} ${operation} ${value2} = ?`,
 						threadID, (err, info) => __GLOBAL.reply.push({ type: "fishing_domath", messageID: info.messageID, target: parseInt(threadID), author: senderID, answer }),
