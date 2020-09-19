@@ -162,6 +162,7 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 				}
 				case "admin_setRefresh": {
 					if (body != 'on' && body != 'off') return api.sendMessage(`Chỉ có thể là 'on' hoặc 'off'.`, threadID);
+					if (body == process.env.REFRESHING) return api.sendMessage(`tuỳ chọn của bạn trùng với config đã từng đặt trước đó`threadID);
 					writeENV("REFRESHING", body);
 					api.sendMessage(`🛠 | Đã đổi khởi động lại của bot thành: ${body}`, threadID);
 					__GLOBAL.reply.splice(indexOfReply, 1);
@@ -336,6 +337,27 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 					await Fishing.updateInventory(senderID, inventory);
 					await Fishing.updateStats(senderID, stats);
 					__GLOBAL.reply.splice(indexOfReply, 1);
+					break;
+				}
+				case "media_video": {
+					if (isNaN(body) || parseInt(body) <= 0 || parseInt(body) > 5) return api.sendMessage("chọn từ 1 đến 5", threadID);
+					const ytdl = require("ytdl-core");
+					var link = `https://www.youtube.com/watch?v=${replyMessage.url[body -1]}`
+					ytdl.getInfo(link, (err, info) => (info.length_seconds > 360) ? api.sendMessage("Độ dài video vượt quá mức cho phép, tối đa là 6 phút!", threadID, messageID) : '');
+					api.sendMessage(`video của bạn đang được xử lý, nếu video dài có thể sẽ mất vài phút!`, threadID);
+					return ytdl(link).pipe(fs.createWriteStream(__dirname + "/src/video.mp4")).on("close", () => api.sendMessage({attachment: fs.createReadStream(__dirname + "/src/video.mp4")}, threadID, () => fs.unlinkSync(__dirname + "/src/video.mp4"), messageID));
+					break;
+				}
+				case "media_audio": {
+					if (isNaN(body) || parseInt(body) <= 0 || parseInt(body) > 5) return api.sendMessage("chọn từ 1 đến 5", threadID);
+					var ytdl = require("ytdl-core");
+					var ffmpeg = require("fluent-ffmpeg");
+					var ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+					ffmpeg.setFfmpegPath(ffmpegPath);
+					var link = `https://www.youtube.com/watch?v=${replyMessage.url[body -1]}`
+					ytdl.getInfo(link, (err, info) => (info.length_seconds > 360) ? api.sendMessage("Độ dài video vượt quá mức cho phép, tối đa là 6 phút!", threadID, messageID) : '');
+					api.sendMessage(`video của bạn đang được xử lý, nếu video dài có thể sẽ mất vài phút!`, threadID);
+					return ffmpeg().input(ytdl(link)).toFormat("mp3").pipe(fs.createWriteStream(__dirname + "/src/music.mp3")).on("close", () => api.sendMessage({attachment: fs.createReadStream(__dirname + "/src/music.mp3")}, threadID, () => fs.unlinkSync(__dirname + "/src/music.mp3"), messageID));					break;
 					break;
 				}
 			}

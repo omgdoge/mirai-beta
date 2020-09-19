@@ -91,9 +91,42 @@ Project Mirai sẽ biến tài khoản Facebook cá nhân của bạn thành m�
 
 - 4.6.5: genaral -> general.
 
-- 4.7.0: ![Ok em](https://i.imgur.com/bMsnC0B.png)
+- 4.7.0: Đây là danh sách gần nửa tháng vừa qua đã và đang làm:
+	- Loại bỏ các file như: 
+		- .credits
+		- app/modules/index
+		- database/models/database/models/economy
+		- database/models/fishing
+		- database/models/nsfw
+		- config.yml
+		- view/index.html
+	- Chỉnh sửa, fix lỗi một số lệnh cũng như thêm các lệnh mới:
+		- index.js (thêm mới, chỉnh sửa)
+		- login.js (thêm mới, chỉnh sửa)
+		- .env.example (thêm mới)
+		- config/index.js (thêm mới)
+		- app/modules/log.js (chỉnh sửa)
+		- app/login/option.js (chỉnh sửa)
+		- app/login/index.js (chỉnh sửa)
+		- app/login/login.js (chỉnh sửa)
+		- app/login/error.js (chỉnh sửa, thêm mới)
+		- app/controllers/economy.js (chỉnh sửa)
+		- app/controllers/fishing.js (chỉnh sửa)
+		- app/controllers/nsfw.js (chỉnh sửa)
+		- app/controllers/user.js (chỉnh sửa, thêm mới)
+		- app/controllers/economy.js (chỉnh sửa, thêm mới)
+		- app/controllers/rank.js (chỉnh sửa, thêm mới)
+		- app/controllers/rank_card.js (thay thế toàn bộ)
+		- app/listen.js (chỉnh sửa)
+		- app/handle/event.js (chỉnh sửa)
+		- app/handle/unsend.js (chỉnh sửa)
+		- app/handle/message_reaction.js (thêm mới)
+		- app/handle/message.reply.js (thêm mới)
+		- app/handle/src (chỉnh sửa, thêm mới)
+		- app/handle/message.js (quả file này update to thì vãi l)
+		- database (loại bỏ, chỉnh sửa, thêm mới)
 
-(Lưu ý: những bản cập nhật sửa lỗi x.y.z -> chỉ sửa mỗi z thì sẽ không cần phải bỏ database cũ, bạn chỉ cần chuyển file database cũ trong tmp/config/data.sqlite vào config/ là được).
+Và rất nhiều sự thay đổi, loại bỏ cũng như chúng tôi thêm mới không tiện ghi hết tại đây :D, hãy trải nghiệm nó thay vì đọc cái đống update lùm xùm này (dù kéo và xem hết cái dòng lằng tà lằng oằn dài vãi lz này xD)
 
 </details>
 

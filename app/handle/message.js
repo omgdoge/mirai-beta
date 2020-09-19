@@ -371,7 +371,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 				var helpMsg = "";
 				helpList.forEach(help => (!helpGroup.some(item => item.group == help.group)) ? helpGroup.push({ group: help.group, cmds: [help.name] }) : helpGroup.find(item => item.group == help.group).cmds.push(help.name));
 				helpGroup.forEach(help => helpMsg += `===== ${help.group.charAt(0).toUpperCase() + help.group.slice(1)} =====\n${help.cmds.join(', ')}\n\n`);
-				return api.sendMessage(helpMsg, threadID, messageID);
+				return api.sendMessage(` Hiện tại đang có ${helpList.length} lệnh có thể sử dụng trên bot này \n\n` + helpMsg, threadID, messageID);
 			}
 			else {
 				if (helpList.some(item => item.name == content))
@@ -468,8 +468,21 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 			var ffmpeg = require("fluent-ffmpeg");
 			var ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 			ffmpeg.setFfmpegPath(ffmpegPath);
-			if (content.indexOf("http") == -1) content = (await axios.get(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&key=${googleSearch}&q=${encodeURIComponent(content)}`, {responseType: 'json'})).data.items[0].id.videoId;
+			if (content.indexOf("http") == -1) {
+				return request(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&key=${googleSearch}&q=${encodeURIComponent(content)}`, function(err, response, body) {
+					var retrieve = JSON.parse(body), msg = '', num = 0, link = [];
+					if (!retrieve) return api.sendMessage(`tạch api!`, threadID);
+					for (var i = 0; i < 5; i++) {
+						if (typeof retrieve.items[i].id.videoId != 'undefined') {
+							link.push(retrieve.items[i].id.videoId);
+							msg += `${num += 1}. ${decodeURIComponent(retrieve.items[i].snippet.title)} [https://youtu.be/${retrieve.items[i].id.videoId}]\n\n`;
+						}
+					}
+					api.sendMessage(`Có ${link.length} kết quả, Chọn 1 trong ${link.length} bên dưới đây:\n\n` + msg, threadID, (err, info) => __GLOBAL.reply.push({ type: "media_audio", messageID: info.messageID, target: parseInt(threadID), author: senderID, url: link }));
+				});
+			}
 			ytdl.getInfo(content, (err, info) => (info.length_seconds > 360) ? api.sendMessage("Độ dài video vượt quá mức cho phép, tối đa là 6 phút!", threadID, messageID) : '');
+			api.sendMessage(`video của bạn đang được xử lý, nếu video dài có thể sẽ mất vài phút!`, threadID);
 			return ffmpeg().input(ytdl(content)).toFormat("mp3").pipe(fs.createWriteStream(__dirname + "/src/music.mp3")).on("close", () => api.sendMessage({attachment: fs.createReadStream(__dirname + "/src/music.mp3")}, threadID, () => fs.unlinkSync(__dirname + "/src/music.mp3"), messageID));
 		}
 
@@ -477,8 +490,21 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 		if (contentMessage.indexOf(`${prefix}video`) == 0) {
 			var content = (event.type == "message_reply") ? event.messageReply.body : contentMessage.slice(prefix.length + 6, contentMessage.length);
 			var ytdl = require("ytdl-core");
-			if (content.indexOf("http") == -1) content = (await axios.get(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&key=${googleSearch}&q=${encodeURIComponent(content)}`, {responseType: 'json'})).data.items[0].id.videoId;
+			if (content.indexOf("http") == -1) {
+				return request(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&key=${googleSearch}&q=${encodeURIComponent(content)}`, function(err, response, body) {
+					var retrieve = JSON.parse(body), msg = '', num = 0, link = [];
+					if (!retrieve) return api.sendMessage(`tạch api!`, threadID);
+					for (var i = 0; i < 5; i++) {
+						if (typeof retrieve.items[i].id.videoId != 'undefined') {
+							link.push(retrieve.items[i].id.videoId);
+							msg += `${num += 1}. ${decodeURIComponent(retrieve.items[i].snippet.title)} [https://youtu.be/${retrieve.items[i].id.videoId}]\n\n`;
+						}
+					}
+					api.sendMessage(`Có ${link.length} kết quả, Chọn 1 trong ${link.length} bên dưới đây:\n\n` + msg, threadID, (err, info) => __GLOBAL.reply.push({ type: "media_video", messageID: info.messageID, target: parseInt(threadID), author: senderID, url: link }));
+				});
+			}
 			ytdl.getInfo(content, (err, info) => (info.length_seconds > 360) ? api.sendMessage("Độ dài video vượt quá mức cho phép, tối đa là 6 phút!", threadID, messageID) : '');
+			api.sendMessage(`video của bạn đang được xử lý, nếu video dài có thể sẽ mất vài phút!`, threadID);
 			return ytdl(content).pipe(fs.createWriteStream(__dirname + "/src/video.mp4")).on("close", () => api.sendMessage({attachment: fs.createReadStream(__dirname + "/src/video.mp4")}, threadID, () => fs.unlinkSync(__dirname + "/src/video.mp4"), messageID));
 		}
 
@@ -859,10 +885,11 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 		if (contentMessage.indexOf(`${prefix}ga`) == 0) {
 			var content = contentMessage.slice(prefix.length + 3, contentMessage.length);
 			api.getThreadInfo(threadID, function(err, info) {
-				if (err) return api.sendMessage(`Đã xảy ra lỗi không mong muốn`, threadID, messageID);
-				let winner = info.participantIDs[Math.floor(Math.random() * info.participantIDs.length)];
-				User.getName(winner).then((name) => {
+				(async () => {
 					if (err) return api.sendMessage(`Đã xảy ra lỗi không mong muốn`, threadID, messageID);
+					let winner = info.participantIDs[Math.floor(Math.random() * info.participantIDs.length)];
+					let userInfo = await User.getInfo(winner);
+					var name = userInfo.name;
 					api.sendMessage({
 						body: `Yahoo ${name}, bạn đã thắng giveaway! phần thưởng là: "${content}" 🥳🥳.`,
 						mentions: [{
@@ -870,7 +897,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 							id: winner
 						}]
 					}, threadID, messageID);
-				});
+				})();
 			});
 			return;
 		}
@@ -1053,7 +1080,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 		}
 
 		//ping
-		if (contentMessage == `${prefix}ping`)
+		if (contentMessage.indexOf(`${prefix}ping`) == 0)
 			return api.getThreadInfo(threadID, (err, info) => {
 				if (err) return api.sendMessage('Đã có lỗi xảy ra!.', threadID, messageID);
 				var ids = info.participantIDs;
@@ -1867,7 +1894,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 				}
 				else if (choose == 'all') {
 					var money = parseInt(inventory.trash + inventory.fish1 * 30 + inventory.fish2 * 100 + inventory.crabs * 250 + inventory.blowfish * 300 + inventory.crocodiles * 500 + inventory.whales * 750 + inventory.dolphins * 750 + inventory.squid * 1000 + inventory.sharks * 1000);
-					api.sendMessage(`🎣 | Bạn sẽ nhận về được ${money} đô sau khi bán toàn bộ hải sản có trong túi. Bạn muỗn tiếp tục chứ? \n ==== Like tin nhắn này để đồng ý giao dịch hoặc dislike để huỷ giao dịch ====`, threadID, (err, info) => {
+					return api.sendMessage(`🎣 | Bạn sẽ nhận về được ${money} đô sau khi bán toàn bộ hải sản có trong túi. Bạn muỗn tiếp tục chứ? \n ==== Like tin nhắn này để đồng ý giao dịch hoặc dislike để huỷ giao dịch ====`, threadID, (err, info) => {
 						if (err) throw err;
 						__GLOBAL.confirm.push({
 							type: "fishing_sellAll",
@@ -2023,7 +2050,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 					"\n[3] Mua cần câu mới" +
 					"\n[4] Mua mồi nhử" +
 					"\n[5] Nâng cấp mồi nhử",
-					threadID, (err, info) => __GLOBAL.reply.push({ type: "fishing_shop", messageID: info.messageID, target: parseInt(threadID), author: senderID})
+					threadID, (err, info) => __GLOBAL.reply.push({ type: "fishing_shop", messageID: info.messageID, target: parseInt(threadID), author: senderID })
 				);
 		}
 		
