@@ -2064,12 +2064,12 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 			let point = await Rank.getPoint(senderID);
 			var curLevel = Math.floor((Math.sqrt(1 + (4 * point) / 3) + 1) / 2);
 			Rank.updatePoint(senderID, 1);
-			var level =  Math.floor((Math.sqrt(1 + (4 * point + 1) / 3) + 1) / 2);
+			var level =  Math.floor((Math.sqrt(1 + (4 * (point + 1)) / 3) + 1) / 2);
 			if (level > curLevel) {
 				let name = await User.getName(senderID);
 				return api.sendMessage({
 					body: name + `, Trình độ anh hùng bàn phím của bạn trong group đã lên level ${level}`,
-					attachment: fs.createReadStream(__dirname + "/src/levelup.GIF")
+					attachment: fs.createReadStream(__dirname + "/src/levelup.GIF"),
 					mentions: [{
 						tag: name,
 						id: senderID,
