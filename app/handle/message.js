@@ -99,8 +99,6 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 		var cmds = nocmdData.banned.find(item => item.id == threadID).cmds;
 		for (const item of cmds) if (contentMessage.indexOf(prefix + item) == 0) return api.sendMessage("Lệnh này đã bị cấm!", threadID, messageID);
 
-		Rank.updatePoint(senderID, 1);
-
 		//giúp thành viên thông báo lỗi về admin
 		if (contentMessage.indexOf(`${prefix}report`) == 0) {
 			var content = contentMessage.slice(prefix.length + 7, contentMessage.length);
@@ -2061,6 +2059,25 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 			}
 			if (checkCmd.bestMatch.rating >= 0.3) return api.sendMessage(`Lệnh bạn nhập không tồn tại.\nÝ bạn là lệnh "${prefix + checkCmd.bestMatch.target}" phải không?`, threadID, messageID);
 		}
+
+		if (contentMessage) {
+			let point = await Rank.getPoint(senderID);
+			var curLevel = Math.floor((Math.sqrt(1 + (4 * point) / 3) + 1) / 2);
+			Rank.updatePoint(senderID, 1);
+			var level =  Math.floor((Math.sqrt(1 + (4 * point + 1) / 3) + 1) / 2);
+			if (level > curLevel) {
+				let name = await User.getName(senderID);
+				return api.sendMessage({
+					body: name + `, Trình độ anh hùng bàn phím của bạn trong group đã lên level ${level}`,
+					attachment: fs.createReadStream(__dirname + "/src/levelup.GIF")
+					mentions: [{
+						tag: name,
+						id: senderID,
+					}],
+				}, threadID)
+			}
+		}
+
 	}
 }
 /* This bot was made by Catalizcs(roxtigger2003) and SpermLord(spermlord) with love <3, pls dont delete this credits! THANKS */
