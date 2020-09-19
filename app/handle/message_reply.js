@@ -162,7 +162,7 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 				}
 				case "admin_setRefresh": {
 					if (body != 'on' && body != 'off') return api.sendMessage(`Chỉ có thể là 'on' hoặc 'off'.`, threadID);
-					if (body == process.env.REFRESHING) return api.sendMessage(`tuỳ chọn của bạn trùng với config đã từng đặt trước đó`threadID);
+					if (body == process.env.REFRESHING) return api.sendMessage(`tuỳ chọn của bạn trùng với config đã từng đặt trước đó`, threadID);
 					writeENV("REFRESHING", body);
 					api.sendMessage(`🛠 | Đã đổi khởi động lại của bot thành: ${body}`, threadID);
 					__GLOBAL.reply.splice(indexOfReply, 1);
