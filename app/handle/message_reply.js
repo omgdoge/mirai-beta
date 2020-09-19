@@ -220,9 +220,9 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 					let moneyToUpgrade = ['1000','4000','6000','8000','10000'];
 					let expToLevelup = ['1000','2000','4000','6000','8000'];
 					
-					let moneyToFix = Math.floor(Math.random() * (1000 - 300)) + 300;
+					let moneyToFix = Math.floor(Math.random() * (300 - 100)) + 100;
 					if (body == 1) return api.sendMessage(`Bạn cần ${expToLevelup[inventory.rod]} exp và ${moneyToUpgrade[inventory.rod]} đô để nâng cấp từ level ${inventory.rod} lên level ${inventory.rod + 1}\nReaction 👍 để đồng ý hoặc chọn bất cứ reaction nào để huỷ!`, threadID, (err, info) => __GLOBAL.confirm.push({ type: "fishing_upgradeRod", messageID: info.messageID, author: senderID, exp: expToLevelup[inventory.rod], money: moneyToUpgrade[inventory.rod], durability: durability[inventory.rod] }));
-					if (body == 2) return api.sendMessage(`Để sửa chữa loại cần câu này, bạn cần ${moneyToFix} đô, bạn đồng ý chứ?\nReaction 👍 để đồng ý hoặc chọn bất cứ reaction nào để huỷ`, threadID, (err, info) => __GLOBAL.confirm.push({ type: "fishing_fixRod", messageID: info.messageID, author: senderID, moneyToFix, durability: durability[inventory.rod] }));
+					if (body == 2) return api.sendMessage(`Để sửa chữa loại cần câu này, bạn cần ${moneyToFix} đô, bạn đồng ý chứ?\nReaction 👍 để đồng ý hoặc chọn bất cứ reaction nào để huỷ`, threadID, (err, info) => __GLOBAL.confirm.push({ type: "fishing_fixRod", messageID: info.messageID, author: senderID, moneyToFix, durability: durability[inventory.rod - 1] }));
 					if (body == 3) return api.sendMessage('Để mua cần câu loại 1, bạn cần tối thiếu 1000 đô, bạn đồng ý chứ?\nReaction 👍 để đồng ý hoặc chọn bất cứ reaction nào để huỷ', threadID, (err, info) => __GLOBAL.confirm.push({ type: "fishing_buyRod", messageID: info.messageID, author: senderID }));
 					if (body == 4) return api.sendMessage('Coming soon!', threadID);
 					if (body == 5) return api.sendMessage('Coming soon!', threadID);
@@ -343,7 +343,9 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 					if (isNaN(body) || parseInt(body) <= 0 || parseInt(body) > 5) return api.sendMessage("chọn từ 1 đến 5", threadID);
 					const ytdl = require("ytdl-core");
 					var link = `https://www.youtube.com/watch?v=${replyMessage.url[body -1]}`
-					ytdl.getInfo(link, (err, info) => (info.length_seconds > 360) ? api.sendMessage("Độ dài video vượt quá mức cho phép, tối đa là 6 phút!", threadID, messageID) : '');
+					ytdl.getInfo(link, (err, info) => { 
+						if (info.length_seconds > 360) return api.sendMessage("Độ dài video vượt quá mức cho phép, tối đa là 6 phút!", threadID, messageID);
+					});
 					api.sendMessage(`video của bạn đang được xử lý, nếu video dài có thể sẽ mất vài phút!`, threadID);
 					return ytdl(link).pipe(fs.createWriteStream(__dirname + "/src/video.mp4")).on("close", () => api.sendMessage({attachment: fs.createReadStream(__dirname + "/src/video.mp4")}, threadID, () => fs.unlinkSync(__dirname + "/src/video.mp4"), messageID));
 					break;
@@ -355,7 +357,9 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 					var ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 					ffmpeg.setFfmpegPath(ffmpegPath);
 					var link = `https://www.youtube.com/watch?v=${replyMessage.url[body -1]}`
-					ytdl.getInfo(link, (err, info) => (info.length_seconds > 360) ? api.sendMessage("Độ dài video vượt quá mức cho phép, tối đa là 6 phút!", threadID, messageID) : '');
+					ytdl.getInfo(link, (err, info) => { 
+						if (info.length_seconds > 360) return api.sendMessage("Độ dài video vượt quá mức cho phép, tối đa là 6 phút!", threadID, messageID);
+					});
 					api.sendMessage(`video của bạn đang được xử lý, nếu video dài có thể sẽ mất vài phút!`, threadID);
 					return ffmpeg().input(ytdl(link)).toFormat("mp3").pipe(fs.createWriteStream(__dirname + "/src/music.mp3")).on("close", () => api.sendMessage({attachment: fs.createReadStream(__dirname + "/src/music.mp3")}, threadID, () => fs.unlinkSync(__dirname + "/src/music.mp3"), messageID));					break;
 					break;

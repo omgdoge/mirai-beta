@@ -472,6 +472,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 				return request(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&key=${googleSearch}&q=${encodeURIComponent(content)}`, function(err, response, body) {
 					var retrieve = JSON.parse(body), msg = '', num = 0, link = [];
 					if (!retrieve) return api.sendMessage(`tạch api!`, threadID);
+					if (retrieve.items.length < 1) return api.sendMessage(`không có kết quả với từ khoá trên!`, threadID, messageID);
 					for (var i = 0; i < 5; i++) {
 						if (typeof retrieve.items[i].id.videoId != 'undefined') {
 							link.push(retrieve.items[i].id.videoId);
@@ -494,6 +495,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 				return request(`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&key=${googleSearch}&q=${encodeURIComponent(content)}`, function(err, response, body) {
 					var retrieve = JSON.parse(body), msg = '', num = 0, link = [];
 					if (!retrieve) return api.sendMessage(`tạch api!`, threadID);
+					if (retrieve.items < 1) return api.sendMessage(`không có kết quả với từ khoá trên!`, threadID, messageID);
 					for (var i = 0; i < 5; i++) {
 						if (typeof retrieve.items[i].id.videoId != 'undefined') {
 							link.push(retrieve.items[i].id.videoId);
@@ -2038,7 +2040,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 							}
 						}
 					}
-					Fishing.updateStealFishingTime(senderID, Date.now());
+					await Fishing.updateStealFishingTime(senderID, Date.now());
 				});
 			}
 			else if (content.indexOf('shop') == 0) 

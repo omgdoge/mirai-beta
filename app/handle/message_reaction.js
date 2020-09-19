@@ -34,7 +34,7 @@ module.exports = function({ api, config, __GLOBAL, User, Thread, Economy, Fishin
 					let inventory = await Fishing.getInventory(confirmMessage.author);
 					let moneydb = await Economy.getMoney(confirmMessage.author);
 					if (moneydb - confirmMessage.money <= 0) return api.sendMessage(`Bạn chưa đủ điều kiện, bạn còn thiếu ${confirmMessage.money - moneydb} đô để nâng cấp`, threadID);
-					if (inventory.exp - confirmMessage.exp <= 0) return api.senMessage(`Bạn chưa đủ điều kiện, bạn còn thiếu ${exp - inventory.exp} exp để nâng cấp`, threadID);
+					if (inventory.exp - confirmMessage.exp <= 0) return api.sendMessage(`Bạn chưa đủ điều kiện, bạn còn thiếu ${confirmMessage.exp - inventory.exp} exp để nâng cấp`, threadID);
 					if (inventory.rod <= 0) return api.sendMessage(`Bạn chưa có cần câu để nâng cấp, hãy mua cần câu mới tại shop!`, threadID);
 					if (inventory.rod == 5) return api.sendMessage(`Cần câu của bạn đã được nâng cấp tối đa từ trước!`, threadID);
 					inventory.rod += 1;

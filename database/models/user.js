@@ -59,6 +59,10 @@ module.exports = function({ sequelize, Sequelize }) {
 			type: Sequelize.BIGINT,
 			defaultValue: 0
 		},
+		stealfishtime: {
+			type: Sequelize.BIGINT,
+			defaultValue: 0
+		},
 		inventory: {
 			type: Sequelize.JSON
 		},
