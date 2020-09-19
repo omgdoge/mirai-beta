@@ -2068,7 +2068,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 			if (level > curLevel) {
 				let name = await User.getName(senderID);
 				return api.sendMessage({
-					body: name + `, Trình độ anh hùng bàn phím của bạn trong group đã lên level ${level}`,
+					body: name + `, Trình độ anh hùng bàn phím của bạn đã lên level ${level}`,
 					attachment: fs.createReadStream(__dirname + "/src/levelup.GIF"),
 					mentions: [{
 						tag: name,
