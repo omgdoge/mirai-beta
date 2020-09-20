@@ -701,7 +701,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 		}
 
 		//changemymind
-		if (contentMessage.indexOf(`${prefix}changemymind`) == 0) {
+		if (contentMessage.indexOf(`${prefix}cmm`) == 0) {
 			const wrapText = (ctx, text, maxWidth) => {
 				return new Promise(resolve => {
 					if (ctx.measureText(text).width < maxWidth) return resolve([text]);
@@ -732,7 +732,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 					return resolve(lines);
 				});
 			}
-			var content = contentMessage.slice(prefix.length + , contentMessage.length);
+			var content = contentMessage.slice(prefix.length + 4, contentMessage.length);
 			const { createCanvas, loadImage, registerFont, toBuffer } = require('canvas');
 			const path = require('path');
 			const __root = path.resolve(__dirname, "./src/meme-template");
