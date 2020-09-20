@@ -700,6 +700,68 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 			}
 		}
 
+		//changemymind
+		if (contentMessage.indexOf(`${prefix}changemymind`) == 0) {
+			const wrapText = (ctx, text, maxWidth) => {
+				return new Promise(resolve => {
+					if (ctx.measureText(text).width < maxWidth) return resolve([text]);
+					if (ctx.measureText('W').width > maxWidth) return resolve(null);
+					const words = text.split(' ');
+					const lines = [];
+					let line = '';
+					while (words.length > 0) {
+						let split = false;
+						while (ctx.measureText(words[0]).width >= maxWidth) {
+							const temp = words[0];
+							words[0] = temp.slice(0, -1);
+							if (split) {
+								words[1] = `${temp.slice(-1)}${words[1]}`;
+							} else {
+								split = true;
+								words.splice(1, 0, temp.slice(-1));
+							}
+						}
+						if (ctx.measureText(`${line}${words[0]}`).width < maxWidth) {
+							line += `${words.shift()} `;
+						} else {
+							lines.push(line.trim());
+							line = '';
+						}
+						if (words.length === 0) lines.push(line.trim());
+					}
+					return resolve(lines);
+				});
+			}
+			var content = contentMessage.slice(prefix.length + , contentMessage.length);
+			const { createCanvas, loadImage, registerFont, toBuffer } = require('canvas');
+			const path = require('path');
+			const __root = path.resolve(__dirname, "./src/meme-template");
+			let pathImg = __root + `/result.png`;
+			registerFont(__root + '/fonts/Noto-Regular.ttf', { family: 'Noto' });
+			registerFont(__root + '/fonts/Noto-CJK.otf', { family: 'Noto' });
+			registerFont(__root + '/fonts/Noto-Emoji.ttf', { family: 'Noto' });
+			const base = await loadImage(__root + "/change-my-mind.png");
+			const canvas = createCanvas(base.width, base.height);
+			const ctx = canvas.getContext('2d');
+			ctx.textBaseline = 'top';
+			ctx.drawImage(base, 0, 0);
+			ctx.rotate(-6 * (Math.PI / 180));
+			ctx.font = '28px Noto';
+			let fontSize = 28;
+			while (ctx.measureText(content).width > 309) {
+				fontSize--;
+				ctx.font = `${fontSize}px Noto`;
+			}
+			const lines = await wrapText(ctx, content, 206);
+			ctx.fillText(lines.join('\n'), 184, 253, 206);
+			ctx.rotate(6 * (Math.PI / 180));
+			const imageBuffer = toBuffer();
+			fs.writeFileSync(pathImg, imageBuffer);
+			return api.sendMessage({
+				attachment: fs.createReadStream(pathImg)
+			}, threadID, () => fs.unlinkSync(pathImg), messageID);
+		}
+
 	/* ==================== General Commands ================*/
 	
 		//shortcut
@@ -875,9 +937,13 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 		if (contentMessage.indexOf(`${prefix}rainbow`) == 0) {
 			var value = contentMessage.slice(prefix.length + 8, contentMessage.length);
 			if (isNaN(value)) return api.sendMessage('Dữ liệu không phải là một con số', threadID, messageID);
-			if (value > 50) return api.sendMessage('Dữ liệu phải nhỏ hơn 50!', threadID, messageID);
+			if (value > 10000) return api.sendMessage('Dữ liệu phải nhỏ hơn 10000!', threadID, messageID);
 			var color = ['196241301102133', '169463077092846', '2442142322678320', '234137870477637', '980963458735625', '175615189761153', '2136751179887052', '2058653964378557', '2129984390566328', '174636906462322', '1928399724138152', '417639218648241', '930060997172551', '164535220883264', '370940413392601', '205488546921017', '809305022860427'];
-			for (var i = 0; i < value; i++) api.changeThreadColor(color[Math.floor(Math.random() * color.length)], threadID);
+			const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+			for (var i = 0; i < value; i++) {
+				api.changeThreadColor(color[Math.floor(Math.random() * color.length)], threadID)
+				await delay(1000);
+			}
 			return;
 		}
 
