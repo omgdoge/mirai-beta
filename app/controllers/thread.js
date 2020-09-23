@@ -71,6 +71,22 @@ module.exports = function({ models, api }) {
 		return await unban(threadID, true);
 	}
 
+	async function blockLevelUp(threadID, blocklevelup = true) {
+		try {
+			await createThread(threadID);
+			(await Thread.findOne({ where: { threadID } })).update({ blocklevelup });
+			return true;
+		}
+		catch (err) {
+			logger(err, 2);
+			return false;
+		}
+	}
+
+	async function unblockLevelUp(threadID) {
+		return await blockLevelUp(threadID, false);
+	}
+
 	async function blockResend(threadID, blockResend = true) {
 		try {
 			(await Thread.findOne({ where: { threadID } })).update({ blockResend });
@@ -111,6 +127,8 @@ module.exports = function({ models, api }) {
 		updateName,
 		ban,
 		unban,
+		blockLevelUp,
+		unblockLevelUp,
 		blockResend,
 		unblockResend,
 		blockNSFW,

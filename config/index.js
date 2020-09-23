@@ -14,6 +14,9 @@ module.exports = {
 	waketime: process.env.WAKETIME,
 	sleeptime: process.env.SLEEPTIME,
 	otpkey: process.env.OTPKEY,
+	warningrate: process.env.WARNINGRATE,
+	ratelimit: process.env.RATELIMIT,
+	tempban: process.env.TEMPBAN,
 	admins: (process.env.ADMINS || '').split('_').map(e => parseInt(e)),
 	nsfwGodMode: false,
 	database: {

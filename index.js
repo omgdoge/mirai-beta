@@ -16,7 +16,9 @@ const __GLOBAL = new Object({
 	afkUser: new Array(),
 	confirm: new Array(),
 	reply: new Array(),
-	simOn: new Array()
+	simOn: new Array(),
+	blockLevelUp: new Array(),
+	slowmode: new Map()
 });
 
 app.get("/", (request, response) => response.sendFile(__dirname + "/config/dbviewer/index.html"));

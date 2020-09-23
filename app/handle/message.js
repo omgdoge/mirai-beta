@@ -1,4 +1,4 @@
-module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, Economy, Fishing, Nsfw }) {
+module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, Economy, Fishing, Nsfw, Function }) {
 	/* ================ Config ==================== */
 	let {prefix, googleSearch, wolfarm, yandex, openweather, tenor, saucenao, waketime, sleeptime, admins, nsfwGodMode} = config;
 	const fs = require("fs-extra");
@@ -9,16 +9,6 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 	const axios = require('axios');
 	const logger = require("../modules/log.js");
 	var resetNSFW = false;
-
-	setInterval(() => {
-		var timer = moment.tz("Asia/Ho_Chi_Minh").format("HH:mm");
-		if (timer == "00:00") {
-			if (resetNSFW == false) {
-				resetNSFW = true;
-				Nsfw.resetNSFW();
-			}
-		}
-	}, 1000);
 
 	if (!fs.existsSync(__dirname + "/src/shortcut.json")) {
 		var template = [];
@@ -31,15 +21,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 		senderID = parseInt(senderID);
 		threadID = parseInt(threadID);
 
-		await User.createUser(senderID);
-		await Thread.createThread(threadID);
-
-		if (__GLOBAL.userBlocked.includes(senderID)) return;
-
-		__GLOBAL.messages.push({
-			msgID: messageID,
-			msgBody: contentMessage
-		});
+		if (__GLOBAL.userBlocked.includes(senderID) && !admins.includes(senderID) || __GLOBAL.threadBlocked.includes(threadID) && !admins.includes(senderID)) return;
 
 		if (event.mentions) {
 			var mentions = Object.keys(event.mentions);
@@ -328,7 +310,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 					})
 				}
 				else if (arg == 'on') {
-					if (!__GLOBAL.resendBlocked.includes(threadID)) return api.sendMessage("Nhóm này chưa bị tắt resend", threadID, messageID);
+					if (!__GLOBAL.resendBlocked.includes(threadID)) return api.sendMessage("Nhóm này chưa bị tắt resend trước đó", threadID, messageID);
 					return Thread.unblockResend(threadID).then(success => {
 						if (!success) return api.sendMessage("Oops, không thể bật resend ở nhóm này!", threadID, messageID);
 						api.sendMessage("Đã bật resend tin nhắn, tôi sẽ nhắc lại tin nhắn bạn đã xoá 😈", threadID, messageID);
@@ -337,25 +319,45 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 				}
 			}
 			else if (content.indexOf("createUser") == 0) {
- 				const mentions = Object.keys(event.mentions);
- 				if (mentions.length == 0) {
- 					if (isNaN(arg)) return api.sendMessage("Không phải là ID.", threadID, messageID);
- 					let success = await User.createUser(arg);
- 					let name = await User.getName(arg);
- 					(success) ? api.sendMessage("Đã thêm " + name + " vào database.", threadID, messageID) : api.sendMessage(name + " đã có sẵn trong database.", threadID, messageID);
- 				}
- 				else {
- 					for (let i of mentions) {
- 						let success = await User.createUser(i);
- 						let name = await User.getName(i);
- 						(success) ? api.sendMessage("Đã thêm " + name + " vào database.", threadID, messageID) : api.sendMessage(name + " đã có sẵn trong database.", threadID, messageID);
- 					}
- 				}
- 				return;
- 			}
+				const mentions = Object.keys(event.mentions);
+				if (mentions.length == 0) {
+					if (isNaN(arg)) return api.sendMessage("Không phải là ID.", threadID, messageID);
+					let success = await User.createUser(arg);
+					let name = await User.getName(arg);
+					(success) ? api.sendMessage("Đã thêm " + name + " vào database.", threadID, messageID) : api.sendMessage(name + " đã có sẵn trong database.", threadID, messageID);
+				}
+				else {
+					for (let i of mentions) {
+						let success = await User.createUser(i);
+						let name = await User.getName(i);
+						(success) ? api.sendMessage("Đã thêm " + name + " vào database.", threadID, messageID) : api.sendMessage(name + " đã có sẵn trong database.", threadID, messageID);
+					}
+				}
+				return;
+			}
 			else if (content.indexOf("addUser") == 0) return api.addUserToGroup(arg, threadID);
 			else if (content.indexOf("restart") == 0) return api.sendMessage(`Hệ thống restart khẩn ngay bây giờ!`, threadID, () => require("node-cmd").run("pm2 restart 0"), messageID);
 			else return api.sendMessage(`Lệnh không tồn tại!`, threadID, messageID);
+		}
+
+		if (contentMessage.indexOf(`${prefix}levelup`) == 0) {
+			var arg = contentMessage.slice(prefix.length + 8, contentMessage.length);
+			if (arg == 'off') {
+				if (__GLOBAL.blockLevelUp.includes(threadID)) return api.sendMessage("Nhóm này đã bị tắt thông báo levelup từ trước!", threadID, messageID);
+				return Thread.blockLevelUp(threadID).then((success) => {
+					if (!success) return api.sendMessage("Oops, không thể tắt thông báo levelup ở nhóm này!", threadID, messageID);
+					api.sendMessage("Đã tắt thông báo levelup thành công!", threadID, messageID);
+					__GLOBAL.blockLevelUp.push(threadID);
+				})
+			}
+			else if (arg == 'on') {
+				if (!__GLOBAL.blockLevelUp.includes(threadID)) return api.sendMessage("Nhóm này chưa tắt thông báo levelup từ trước", threadID, messageID);
+				return Thread.unblockLevelUp(threadID).then(success => {
+					if (!success) return api.sendMessage("Oops, không thể bật thông báo levelup ở nhóm này!", threadID, messageID);
+					api.sendMessage("Đã bật thông báo levelup", threadID, messageID);
+					__GLOBAL.blockLevelUp.splice(__GLOBAL.blockLevelUp.indexOf(threadID), 1);
+				});
+			}
 		}
 
 	/* ==================== Help Commands ================*/
@@ -700,40 +702,10 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 			}
 		}
 
-		//changemymind
-		if (contentMessage.indexOf(`${prefix}cmm`) == 0) {
-			const wrapText = (ctx, text, maxWidth) => {
-				return new Promise(resolve => {
-					if (ctx.measureText(text).width < maxWidth) return resolve([text]);
-					if (ctx.measureText('W').width > maxWidth) return resolve(null);
-					const words = text.split(' ');
-					const lines = [];
-					let line = '';
-					while (words.length > 0) {
-						let split = false;
-						while (ctx.measureText(words[0]).width >= maxWidth) {
-							const temp = words[0];
-							words[0] = temp.slice(0, -1);
-							if (split) {
-								words[1] = `${temp.slice(-1)}${words[1]}`;
-							} else {
-								split = true;
-								words.splice(1, 0, temp.slice(-1));
-							}
-						}
-						if (ctx.measureText(`${line}${words[0]}`).width < maxWidth) {
-							line += `${words.shift()} `;
-						} else {
-							lines.push(line.trim());
-							line = '';
-						}
-						if (words.length === 0) lines.push(line.trim());
-					}
-					return resolve(lines);
-				});
-			}
-			var content = contentMessage.slice(prefix.length + 4, contentMessage.length);
-			const { createCanvas, loadImage, registerFont, toBuffer } = require('canvas');
+		//change-my-mind
+		if (contentMessage.indexOf(`${prefix}change-mind`) == 0) {
+			var content = contentMessage.slice(prefix.length + 12, contentMessage.length);
+			const { createCanvas, loadImage, registerFont } = require('canvas');
 			const path = require('path');
 			const __root = path.resolve(__dirname, "./src/meme-template");
 			let pathImg = __root + `/result.png`;
@@ -752,10 +724,88 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 				fontSize--;
 				ctx.font = `${fontSize}px Noto`;
 			}
-			const lines = await wrapText(ctx, content, 206);
+			const lines = await Function.wrapText(ctx, content, 206);
 			ctx.fillText(lines.join('\n'), 184, 253, 206);
 			ctx.rotate(6 * (Math.PI / 180));
-			const imageBuffer = toBuffer();
+			const imageBuffer = canvas.toBuffer();
+			fs.writeFileSync(pathImg, imageBuffer);
+			return api.sendMessage({
+				attachment: fs.createReadStream(pathImg)
+			}, threadID, () => fs.unlinkSync(pathImg), messageID);
+		}
+
+		//two-buttons
+		if (contentMessage.indexOf(`${prefix}buttons`) == 0) {
+			var content = contentMessage.slice(prefix.length + 8, contentMessage.length);
+			var split = content.split(" | ");
+			var first = split[0];
+			var second = split[1];
+			const { createCanvas, loadImage, registerFont } = require('canvas');
+			const path = require('path');
+			const __root = path.resolve(__dirname, "./src/meme-template");
+			let pathImg = __root + `/result.png`;
+			registerFont(__root + '/fonts/Noto-Regular.ttf', { family: 'Noto' });
+			registerFont(__root + '/fonts/Noto-CJK.otf', { family: 'Noto' });
+			registerFont(__root + '/fonts/Noto-Emoji.ttf', { family: 'Noto' });
+			const base = await loadImage(__root + "/two-buttons.png");
+			const canvas = createCanvas(base.width, base.height);
+			const ctx = canvas.getContext('2d');
+			ctx.textBaseline = 'top';
+			ctx.drawImage(base, 0, 0);
+			ctx.rotate(-12 * (Math.PI / 180));
+			ctx.font = '34px Noto';
+			let fontSize = 34;
+			while (ctx.measureText(first).width > 366) {
+				fontSize--;
+				ctx.font = `${fontSize}px Noto`;
+			}
+			const firstLines = await Function.wrapText(ctx, first, 183);
+			let lineOffset = 0;
+			for (let i = 0; i < firstLines.length; i++) {
+				ctx.fillText(firstLines[i], 25 + lineOffset, 116 + (fontSize * i) + (10 * i), 183);
+				lineOffset += 5;
+			}
+			ctx.font = '34px Noto';
+			fontSize = 34;
+			while (ctx.measureText(second).width > 244) {
+				fontSize--;
+				ctx.font = `${fontSize}px Noto`;
+			}
+			const secondLines = await Function.wrapText(ctx, second, 118);
+			lineOffset = 0;
+			for (let i = 0; i < secondLines.length; i++) {
+				ctx.fillText(secondLines[i], 254 + lineOffset, 130 + (fontSize * i) + (10 * i), 118);
+				lineOffset += 5;
+			}
+			ctx.rotate(12 * (Math.PI / 180));
+			const imageBuffer = canvas.toBuffer();
+			fs.writeFileSync(pathImg, imageBuffer);
+			return api.sendMessage({
+				attachment: fs.createReadStream(pathImg)
+			}, threadID, () => fs.unlinkSync(pathImg), messageID);
+		}
+
+		//new-password
+		if (contentMessage.indexOf(`${prefix}new-pwd`) == 0) {
+			var content = contentMessage.slice(prefix.length + 8, contentMessage.length);
+			var split = content.split(" | ");
+			var weak = split[0];
+			var strong = split[1];
+			const { createCanvas, loadImage, registerFont } = require('canvas');
+			const path = require('path');
+			const __root = path.resolve(__dirname, "./src/meme-template");
+			let pathImg = __root + `/result.png`;
+			registerFont(__root + '/fonts/Noto-Regular.ttf', { family: 'Noto' });
+			registerFont(__root + '/fonts/Noto-CJK.otf', { family: 'Noto' });
+			registerFont(__root + '/fonts/Noto-Emoji.ttf', { family: 'Noto' });
+			const base = await loadImage(__root + "/new-password.png");
+			const canvas = createCanvas(base.width, base.height);
+			const ctx = canvas.getContext('2d');
+			ctx.drawImage(base, 0, 0);
+			ctx.font = '25px Noto';
+			ctx.fillText(Function.shortenText(ctx, weak, 390), 40, 113);
+			ctx.fillText(Function.shortenText(ctx, strong, 390), 40, 351);
+			const imageBuffer = canvas.toBuffer();
 			fs.writeFileSync(pathImg, imageBuffer);
 			return api.sendMessage({
 				attachment: fs.createReadStream(pathImg)
@@ -900,12 +950,11 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 
 		//reminder
 		if (contentMessage.indexOf(`${prefix}reminder`) == 0) {
-			const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 			const time = contentMessage.slice(prefix.length + 9, contentMessage.length);
 			if (isNaN(time)) return api.sendMessage(`thời gian bạn nhập không phải là một con số!`, threadID, messageID);
 			const display = time > 59 ? `${time / 60} phút` : `${time} giây`;
 			api.sendMessage(`tôi sẽ nhắc bạn sau: ${display}`, threadID, messageID);
-			await delay(time * 1000);
+			await new Promise(resolve => setTimeout(resolve, time * 1000));
 			api.sendMessage({
 				body: `Người lạ ơi, có vẻ bạn đã nhờ tôi nhắc bạn làm việc gì đó thì phải?`,
 				mentions: [{
@@ -939,10 +988,9 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 			if (isNaN(value)) return api.sendMessage('Dữ liệu không phải là một con số', threadID, messageID);
 			if (value > 10000) return api.sendMessage('Dữ liệu phải nhỏ hơn 10000!', threadID, messageID);
 			var color = ['196241301102133', '169463077092846', '2442142322678320', '234137870477637', '980963458735625', '175615189761153', '2136751179887052', '2058653964378557', '2129984390566328', '174636906462322', '1928399724138152', '417639218648241', '930060997172551', '164535220883264', '370940413392601', '205488546921017', '809305022860427'];
-			const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 			for (var i = 0; i < value; i++) {
 				api.changeThreadColor(color[Math.floor(Math.random() * color.length)], threadID)
-				await delay(1000);
+				await new Promise(resolve => setTimeout(resolve, 1000));
 			}
 			return;
 		}
@@ -1054,9 +1102,11 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 
 		//rank
 		if (contentMessage.indexOf(`${prefix}rank`) == 0) {
+			let timeStart = Date.now();
 			const createCard = require("../controllers/rank_card.js");
 			var content = contentMessage.slice(prefix.length + 5, contentMessage.length);
 			let all = await User.getUsers(['uid', 'point']);
+			let target;
 			all.sort((a, b) => {
 				if (a.point > b.point) return -1;
 				if (a.point < b.point) return 1;
@@ -1067,7 +1117,11 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 				let rank = all.findIndex(item => item.uid == senderID) + 1;
 				let name = await User.getName(senderID);
 				if (rank == 0) api.sendMessage('Bạn hiện chưa có trong database nên không thể xem rank, hãy thử lại sau 5 giây.', threadID, messageID);
-				else Rank.getInfo(senderID).then(point => createCard({ id: senderID, name, rank, ...point })).then(path => api.sendMessage({attachment: fs.createReadStream(path)}, threadID, () => fs.unlinkSync(path), messageID));
+				else Rank.getInfo(senderID).then(point => createCard({ id: senderID, name, rank, ...point })).then(path => { 
+					api.sendMessage({attachment: fs.createReadStream(path)}, threadID, () => fs.unlinkSync(path), messageID)
+					let timeEnd = Date.now;
+					api.sendMessage(`mất khoảng ${timeEnd - timeStart}ms để xử lý tin nhắn này!`, threadID);
+				});
 			}
 			else {
 				let mentions = Object.keys(event.mentions);
@@ -1106,11 +1160,15 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 
 		//uptime
 		if (contentMessage == `${prefix}uptime`) {
+			let timeStart = Date.now();
 			var time = process.uptime();
 			var hours = Math.floor(time / (60*60));
 			var minutes = Math.floor((time % (60 * 60)) / 60);
 			var seconds = Math.floor(time % 60);
-			return api.sendMessage("Bot đã hoạt động được " + hours + " giờ " + minutes + " phút " + seconds + " giây.", threadID, messageID);
+			return api.sendMessage("Bot đã hoạt động được " + hours + " giờ " + minutes + " phút " + seconds + " giây.", threadID,() =>{
+				let timeEnd = Date.now();
+				api.sendMessage(`mất khoảng ${timeEnd - timeStart}ms để xử lý tin nhắn này!`, threadID);
+			}, messageID);
 		}
 
 		//unsend message
@@ -1749,7 +1807,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 					else if (route == 1) {
 						Economy.getMoney(senderID).then(moneydb => {
 							if (moneydb <= 0) return api.sendMessage("Cần lao vi tiên thủ\nNăng cán dĩ đắc thực\nVô vi thực đầu buồi\nThực cứt thế cho nhanh", threadID, messageID);
-							else if (moneydb > 0) return api.sendMessage(`Bạn bị tóm vì tội ăn trộm, mất ${moneydb} đô`, threadID, () => api.sendMessage({body: `Chúc mừng anh hùng ${nameV} tóm gọn tên trộm ${name} và đã nhận được tiền thưởng ${Math.floor(moneydb / 2)} đô`, mentions: [{ tag: nameV, id: victim}, {tag: name, id: senderID}]}, threadID, () => {
+							else if (moneydb > 0) return api.sendMessage(`Bạn bị tóm vì tội ăn trộm, mất ${moneydb} đô`, threadID, () => api.sendMessage({body: `Chúc mừng anh hùng ${nameVictim} tóm gọn tên trộm ${name} và đã nhận được tiền thưởng ${Math.floor(moneydb / 2)} đô`, mentions: [{ tag: nameVictim, id: victim}, {tag: name, id: senderID}]}, threadID, () => {
 								Economy.subtractMoney(senderID, moneydb);
 								Economy.addMoney(victim, parseInt(Math.floor(moneydb / 2)));
 							}), messageID);
@@ -2126,7 +2184,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 			if (checkCmd.bestMatch.rating >= 0.3) return api.sendMessage(`Lệnh bạn nhập không tồn tại.\nÝ bạn là lệnh "${prefix + checkCmd.bestMatch.target}" phải không?`, threadID, messageID);
 		}
 
-		if (contentMessage) {
+		if (contentMessage && !__GLOBAL.blockLevelUp.includes(threadID)) {
 			let point = await Rank.getPoint(senderID);
 			var curLevel = Math.floor((Math.sqrt(1 + (4 * point) / 3) + 1) / 2);
 			Rank.updatePoint(senderID, 1);
@@ -2143,7 +2201,12 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 				}, threadID)
 			}
 		}
-
+		await User.createUser(senderID);
+		await Thread.createThread(threadID);
+		__GLOBAL.messages.push({
+			msgID: messageID,
+			msgBody: contentMessage
+		});
 	}
 }
 /* This bot was made by Catalizcs(roxtigger2003) and SpermLord(spermlord) with love <3, pls dont delete this credits! THANKS */

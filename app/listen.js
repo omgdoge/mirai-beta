@@ -6,23 +6,26 @@ module.exports = function({ api, models, __GLOBAL }) {
 				Rank = require("./controllers/rank")({ models, api }),
 				Economy = require("./controllers/economy")({ models, api }),
 				Fishing = require("./controllers/fishing")({ models, api }),
-				Nsfw = require("./controllers/nsfw")({ models, api, Economy });
+				Nsfw = require("./controllers/nsfw")({ models, api, Economy }),
+				Function = require("./modules/function");
 
 	(async () => {
 		logger("Đang khởi tạo biến môi trường...");
 		__GLOBAL.userBlocked = (await User.getUsers({ block: true })).map(e => e.uid);
 		__GLOBAL.afkUser = (await User.getUsers({ afk: true })).map(e => e.uid);
+		__GLOBAL.blockLevelUp = (await Thread.getThreads({ blocklevelup: true })).map(e => e.threadID);
 		__GLOBAL.threadBlocked = (await Thread.getThreads({ block: true })).map(e => e.threadID);
 		__GLOBAL.resendBlocked = (await Thread.getThreads({ blockResend: true })).map(e => e.threadID);
 		__GLOBAL.NSFWBlocked = (await Thread.getThreads({ blockNSFW: true })).map(e => e.threadID);
 		logger("Khởi tạo biến môi trường thành công!");
 	})();
 
-	const handleMessage = require("./handle/message")({ api, config, __GLOBAL, models, User, Thread, Rank, Economy, Fishing, Nsfw });
+	const handleMessage = require("./handle/message")({ api, config, __GLOBAL, models, User, Thread, Rank, Economy, Fishing, Nsfw, Function });
 	const handleEvent = require("./handle/event")({ api, config, __GLOBAL, User, Thread });
 	const handleReply = require("./handle/message_reply")({ api, config, __GLOBAL, User, Thread, Economy, Fishing, Nsfw });
 	const handleReaction = require("./handle/message_reaction")({ api, config, __GLOBAL, User, Thread, Economy, Fishing, Nsfw });
 	const handleUnsend = require("./handle/unsend")({ api, __GLOBAL, User });
+	const handleAntiSpam = require("./handle/anti-spam")({ api, config, __GLOBAL, User, Thread });
 
 	logger(config.prefix || "[Không có]", "[ PREFIX ]");
 	logger(`${api.getCurrentUserID()} - ${config.botName}`, "[ UID ]");
@@ -36,6 +39,7 @@ module.exports = function({ api, models, __GLOBAL }) {
 			case "message_reply":
 				handleMessage({ event });
 				handleReply({ event });
+				handleAntiSpam({ event });
 				break;
 			case "message_unsend":
 				handleUnsend({ event });

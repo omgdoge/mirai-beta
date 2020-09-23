@@ -119,6 +119,27 @@
 		"group":"media"
 	},
 	{
+		"name":"change-mind",
+		"decs":"edit text của bạn vào image change mind",
+		"usage":"change-mind [text1]",
+		"example":"change-mind hello",
+		"group":"media"
+	},
+	{
+		"name":"buttons",
+		"decs":"meme edit",
+		"usage":"buttons [text1] | [text2]",
+		"example":"buttons không | có",
+		"group":"media"
+	},
+	{
+		"name":"new-pwd",
+		"decs":"meme edit",
+		"usage":"new-pwd [text1] | [text2]",
+		"example":"new-pwd không | có",
+		"group":"media"
+	},
+	{
 		"name":"short",
 		"decs":"Tạo một phím tắt cho những thứ bạn nhập vào",
 		"usage":"short [input] => [output] hoặc [output1] | [output2]",
@@ -166,6 +187,13 @@
 		"usage": "rname",
 		"example": "rname",
 		"group": "general"
+	},
+	{
+		"name": "levelup",
+		"decs": "bật tắt thông báo levelup",
+		"usage": "levelup [on/off]",
+		"example": "levelup on",
+		"group": "system"
 	},
 	{
 		"name": "sim on/off",
