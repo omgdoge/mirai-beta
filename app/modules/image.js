@@ -1,4 +1,4 @@
-module.exports = function({ models, api }) {
+module.exports = function() {
 	const wrapText = (ctx, text, maxWidth) => {
 		return new Promise(resolve => {
 			if (ctx.measureText(text).width < maxWidth) return resolve([text]);

@@ -7,7 +7,7 @@ module.exports = function({ api, models, __GLOBAL }) {
 				Economy = require("./controllers/economy")({ models, api }),
 				Fishing = require("./controllers/fishing")({ models, api }),
 				Nsfw = require("./controllers/nsfw")({ models, api, Economy }),
-				Image = require("./modules/function");
+				Image = require("./modules/image");
 
 	(async () => {
 		logger("Đang khởi tạo biến môi trường...");

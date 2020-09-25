@@ -737,7 +737,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 				fontSize--;
 				ctx.font = `${fontSize}px Noto`;
 			}
-			const lines = await Function.wrapText(ctx, content, 206);
+			const lines = await Image.wrapText(ctx, content, 206);
 			ctx.fillText(lines.join('\n'), 184, 253, 206);
 			ctx.rotate(6 * (Math.PI / 180));
 			const imageBuffer = canvas.toBuffer();
@@ -772,7 +772,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 				fontSize--;
 				ctx.font = `${fontSize}px Noto`;
 			}
-			const firstLines = await Function.wrapText(ctx, first, 183);
+			const firstLines = await Image.wrapText(ctx, first, 183);
 			let lineOffset = 0;
 			for (let i = 0; i < firstLines.length; i++) {
 				ctx.fillText(firstLines[i], 25 + lineOffset, 116 + (fontSize * i) + (10 * i), 183);
@@ -784,7 +784,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 				fontSize--;
 				ctx.font = `${fontSize}px Noto`;
 			}
-			const secondLines = await Function.wrapText(ctx, second, 118);
+			const secondLines = await Image.wrapText(ctx, second, 118);
 			lineOffset = 0;
 			for (let i = 0; i < secondLines.length; i++) {
 				ctx.fillText(secondLines[i], 254 + lineOffset, 130 + (fontSize * i) + (10 * i), 118);
@@ -816,8 +816,8 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 			const ctx = canvas.getContext('2d');
 			ctx.drawImage(base, 0, 0);
 			ctx.font = '25px Noto';
-			ctx.fillText(Function.shortenText(ctx, weak, 390), 40, 113);
-			ctx.fillText(Function.shortenText(ctx, strong, 390), 40, 351);
+			ctx.fillText(Image.shortenText(ctx, weak, 390), 40, 113);
+			ctx.fillText(Image.shortenText(ctx, strong, 390), 40, 351);
 			const imageBuffer = canvas.toBuffer();
 			fs.writeFileSync(pathImg, imageBuffer);
 			return api.sendMessage({
@@ -1115,7 +1115,6 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 
 		//rank
 		if (contentMessage.indexOf(`${prefix}rank`) == 0) {
-			let timeStart = Date.now();
 			const createCard = require("../controllers/rank_card.js");
 			var content = contentMessage.slice(prefix.length + 5, contentMessage.length);
 			let all = await User.getUsers(['uid', 'point']);
@@ -1130,11 +1129,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 				let rank = all.findIndex(item => item.uid == senderID) + 1;
 				let name = await User.getName(senderID);
 				if (rank == 0) api.sendMessage('Bạn hiện chưa có trong database nên không thể xem rank, hãy thử lại sau 5 giây.', threadID, messageID);
-				else Rank.getInfo(senderID).then(point => createCard({ id: senderID, name, rank, ...point })).then(path => { 
-					api.sendMessage({attachment: fs.createReadStream(path)}, threadID, () => fs.unlinkSync(path), messageID)
-					let timeEnd = Date.now();
-					api.sendMessage(`mất khoảng ${timeEnd - timeStart}ms để xử lý tin nhắn này!`, threadID);
-				});
+				else Rank.getInfo(senderID).then(point => createCard({ id: senderID, name, rank, ...point })).then(path => api.sendMessage({attachment: fs.createReadStream(path)}, threadID, () => fs.unlinkSync(path), messageID));
 			}
 			else {
 				let mentions = Object.keys(event.mentions);
@@ -1173,15 +1168,11 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 
 		//uptime
 		if (contentMessage == `${prefix}uptime`) {
-			let timeStart = Date.now();
 			var time = process.uptime();
 			var hours = Math.floor(time / (60*60));
 			var minutes = Math.floor((time % (60 * 60)) / 60);
 			var seconds = Math.floor(time % 60);
-			return api.sendMessage("Bot đã hoạt động được " + hours + " giờ " + minutes + " phút " + seconds + " giây.", threadID,() =>{
-				let timeEnd = Date.now();
-				api.sendMessage(`mất khoảng ${timeEnd - timeStart}ms để xử lý tin nhắn này!`, threadID);
-			}, messageID);
+			return api.sendMessage("Bot đã hoạt động được " + hours + " giờ " + minutes + " phút " + seconds + " giây.", threadID, messageID);
 		}
 
 		//unsend message
