@@ -7,7 +7,7 @@ module.exports = function({ api, models, __GLOBAL }) {
 				Economy = require("./controllers/economy")({ models, api }),
 				Fishing = require("./controllers/fishing")({ models, api }),
 				Nsfw = require("./controllers/nsfw")({ models, api, Economy }),
-				Function = require("./modules/function");
+				Image = require("./modules/function");
 
 	(async () => {
 		logger("Đang khởi tạo biến môi trường...");
@@ -20,12 +20,11 @@ module.exports = function({ api, models, __GLOBAL }) {
 		logger("Khởi tạo biến môi trường thành công!");
 	})();
 
-	const handleMessage = require("./handle/message")({ api, config, __GLOBAL, models, User, Thread, Rank, Economy, Fishing, Nsfw, Function });
+	const handleMessage = require("./handle/message")({ api, config, __GLOBAL, models, User, Thread, Rank, Economy, Fishing, Nsfw, Image });
 	const handleEvent = require("./handle/event")({ api, config, __GLOBAL, User, Thread });
 	const handleReply = require("./handle/message_reply")({ api, config, __GLOBAL, User, Thread, Economy, Fishing, Nsfw });
 	const handleReaction = require("./handle/message_reaction")({ api, config, __GLOBAL, User, Thread, Economy, Fishing, Nsfw });
 	const handleUnsend = require("./handle/unsend")({ api, __GLOBAL, User });
-	const handleAntiSpam = require("./handle/anti-spam")({ api, config, __GLOBAL, User, Thread });
 
 	logger(config.prefix || "[Không có]", "[ PREFIX ]");
 	logger(`${api.getCurrentUserID()} - ${config.botName}`, "[ UID ]");
@@ -39,7 +38,6 @@ module.exports = function({ api, models, __GLOBAL }) {
 			case "message_reply":
 				handleMessage({ event });
 				handleReply({ event });
-				handleAntiSpam({ event });
 				break;
 			case "message_unsend":
 				handleUnsend({ event });

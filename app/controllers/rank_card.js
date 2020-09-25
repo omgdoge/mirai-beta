@@ -28,8 +28,8 @@ module.exports = async function(data) {
 	let rankCard = await Canvas.loadImage(__root + "/rank_card/rankcard.png");
 	let pathImg = __root + `/rank_card/rank_${id}.png`;
 
-	let getAvatar = (await axios.get(`https://graph.facebook.com/${id}/picture?width=512&height=512`, { responseType: 'arraybuffer' })).data;
 	let avatar = __root + `/rank_card/avt_${id}.png`;
+	let getAvatar = (await axios.get(`https://graph.facebook.com/${id}/picture?width=512&height=512`, { responseType: 'arraybuffer' })).data;
 	fs.writeFileSync(avatar, Buffer.from(getAvatar, 'utf-8'));
 	
 	const canvas = Canvas.createCanvas(934, 282);
@@ -37,9 +37,6 @@ module.exports = async function(data) {
 	
 	ctx.drawImage(rankCard, 0, 0, canvas.width, canvas.height);
 	ctx.drawImage(await Canvas.loadImage(await circle(avatar)), 45, 50, 180, 180);
-
-	let status = await Canvas.loadImage(await circle(__root + '/rank_card/online.png'));
-	ctx.drawImage(status, 180, 187, 40, 40);
 
 	ctx.font = `bold 36px Manrope`;
 	ctx.fillStyle = "#FFFFFF";
@@ -83,7 +80,7 @@ module.exports = async function(data) {
 
 	const imageBuffer = canvas.toBuffer();
 	fs.writeFileSync(pathImg, imageBuffer);
-	fs.removeSync(__root + `/rank_card/avt_${id}.png`);
+	fs.removeSync(avatar);
 	return pathImg;
 }
 

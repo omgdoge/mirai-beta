@@ -1,4 +1,4 @@
-module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, Economy, Fishing, Nsfw, Function }) {
+module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, Economy, Fishing, Nsfw, Image }) {
 	/* ================ Config ==================== */
 	let {prefix, googleSearch, wolfarm, yandex, openweather, tenor, saucenao, waketime, sleeptime, admins, nsfwGodMode} = config;
 	const fs = require("fs-extra");
@@ -9,6 +9,16 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 	const axios = require('axios');
 	const logger = require("../modules/log.js");
 	var resetNSFW = false;
+
+	setInterval(() => {
+		var timer = moment.tz("Asia/Ho_Chi_Minh").format("HH:mm");
+		if (timer == "00:00") {
+			if (resetNSFW == false) {
+				resetNSFW = true;
+				Nsfw.resetNSFW();
+			}
+		}
+	}, 1000);
 
 	if (!fs.existsSync(__dirname + "/src/shortcut.json")) {
 		var template = [];
@@ -22,6 +32,10 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 		threadID = parseInt(threadID);
 
 		if (__GLOBAL.userBlocked.includes(senderID) && !admins.includes(senderID) || __GLOBAL.threadBlocked.includes(threadID) && !admins.includes(senderID)) return;
+
+		await User.createUser(senderID);
+		await Thread.createThread(threadID);
+		await Rank.updatePoint(senderID, 1);
 
 		if (event.mentions) {
 			var mentions = Object.keys(event.mentions);
@@ -131,14 +145,13 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 				return api.sendMessage(commandAdmin.join(', '), threadID, messageID);
 			}
 			else if (content.indexOf("help") == 0) {
-				var helpCommand = content.slice(5, content.length);
-				if (helpList.some(item => item.name == helpCommand))
+				if (helpList.some(item => item.name == arg))
 					return api.sendMessage(
 						'=== Thông tin lệnh bạn đang tìm ===\n' +
-						'- Tên lệnh: ' + helpList.find(item => item.name == helpCommand).name + '\n' +
-						'- Thông tin: ' + helpList.find(item => item.name == helpCommand).decs + '\n' +
-						'- Cách dùng: ' + prefix + helpList.find(item => item.name == helpCommand).usage + '\n' +
-						'- Hướng dẫn: ' + prefix + helpList.find(item => item.name == helpCommand).example,
+						'- Tên lệnh: ' + helpList.find(item => item.name == arg).name + '\n' +
+						'- Thông tin: ' + helpList.find(item => item.name == arg).decs + '\n' +
+						'- Cách dùng: ' + prefix + helpList.find(item => item.name == arg).usage + '\n' +
+						'- Hướng dẫn: ' + prefix + helpList.find(item => item.name == arg).example,
 						threadID, messageID
 					);
 				else return api.sendMessage(`Lệnh bạn nhập không hợp lệ, hãy gõ ${prefix}admin all để xem tất cả các lệnh có trong bot.`, threadID, messageID);
@@ -1119,7 +1132,7 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 				if (rank == 0) api.sendMessage('Bạn hiện chưa có trong database nên không thể xem rank, hãy thử lại sau 5 giây.', threadID, messageID);
 				else Rank.getInfo(senderID).then(point => createCard({ id: senderID, name, rank, ...point })).then(path => { 
 					api.sendMessage({attachment: fs.createReadStream(path)}, threadID, () => fs.unlinkSync(path), messageID)
-					let timeEnd = Date.now;
+					let timeEnd = Date.now();
 					api.sendMessage(`mất khoảng ${timeEnd - timeStart}ms để xử lý tin nhắn này!`, threadID);
 				});
 			}
@@ -2187,7 +2200,6 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 		if (contentMessage && !__GLOBAL.blockLevelUp.includes(threadID)) {
 			let point = await Rank.getPoint(senderID);
 			var curLevel = Math.floor((Math.sqrt(1 + (4 * point) / 3) + 1) / 2);
-			Rank.updatePoint(senderID, 1);
 			var level =  Math.floor((Math.sqrt(1 + (4 * (point + 1)) / 3) + 1) / 2);
 			if (level > curLevel) {
 				let name = await User.getName(senderID);
@@ -2201,8 +2213,6 @@ module.exports = function({ api, config, __GLOBAL, models, User, Thread, Rank, E
 				}, threadID)
 			}
 		}
-		await User.createUser(senderID);
-		await Thread.createThread(threadID);
 		__GLOBAL.messages.push({
 			msgID: messageID,
 			msgBody: contentMessage

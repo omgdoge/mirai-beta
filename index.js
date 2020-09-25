@@ -17,8 +17,7 @@ const __GLOBAL = new Object({
 	confirm: new Array(),
 	reply: new Array(),
 	simOn: new Array(),
-	blockLevelUp: new Array(),
-	slowmode: new Map()
+	blockLevelUp: new Array()
 });
 
 app.get("/", (request, response) => response.sendFile(__dirname + "/config/dbviewer/index.html"));
